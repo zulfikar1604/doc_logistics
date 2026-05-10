@@ -16,8 +16,8 @@ if (isset($_POST['simpan_driver'])) {
     $berlaku_sim = mysqli_real_escape_string($conn, $_POST['berlaku_sim']);
     $no_telepon  = mysqli_real_escape_string($conn, $_POST['no_telepon']);
 
-    $insert = mysqli_query($conn, "INSERT INTO driver (id_login, kode_driver, lisensi_sim, berlaku_sim, no_telepon) 
-                                   VALUES ('$id_login', '$kode_driver', '$lisensi_sim', '$berlaku_sim', '$no_telepon')");
+    $insert = mysqli_query($conn, "INSERT INTO driver (id_login, kode_driver, lisensi_sim, berlaku_sim, no_telepon, status_kerja) 
+                                   VALUES ('$id_login', '$kode_driver', '$lisensi_sim', '$berlaku_sim', '$no_telepon', 'AVAILABLE')");
     if ($insert) {
         echo "<script>alert('Data operasional driver berhasil dilengkapi!'); window.location.href='data_driver.php';</script>";
     } else {
@@ -154,7 +154,7 @@ if (isset($_GET['hapus'])) {
                             ");
                             
                             while ($row = mysqli_fetch_assoc($query_driver)) {
-                                $status = $row['status_kerja'];
+                                $status = empty($row['status_kerja']) ? 'AVAILABLE' : $row['status_kerja'];
                                 
                                 // Penentuan Label/Badge Rapi
                                 if ($status == 'ON TRIP') {
@@ -236,12 +236,15 @@ if (isset($_GET['hapus'])) {
                                                 </div>
                                                 <div class="mb-4">
                                                     <label class="small fw-bold mb-1">Status Kerja</label>
-                                                    <select name="status_kerja" class="form-select" style="border-radius: 10px;">
-                                                        <option value="AVAILABLE" <?php if($row['status_kerja'] == 'AVAILABLE') echo 'selected'; ?>>AVAILABLE (Tersedia)</option>
-                                                        <option value="ON TRIP" <?php if($row['status_kerja'] == 'ON TRIP') echo 'selected'; ?>>ON TRIP (Sedang Bertugas)</option>
-                                                        <option value="RETURNING" <?php if($row['status_kerja'] == 'RETURNING') echo 'selected'; ?>>RETURNING (Perjalanan Pulang)</option>
-                                                        <option value="OFF" <?php if($row['status_kerja'] == 'OFF') echo 'selected'; ?>>OFF (Cuti / Libur)</option>
-                                                    </select>
+                                                    <?php if($row['status_kerja'] == 'ON TRIP' || $row['status_kerja'] == 'RETURNING'): ?>
+                                                        <input type="text" class="form-control" value="<?= $row['status_kerja']; ?> (Dikelola Sistem)" disabled style="border-radius: 10px;">
+                                                        <input type="hidden" name="status_kerja" value="<?= $row['status_kerja']; ?>">
+                                                    <?php else: ?>
+                                                        <select name="status_kerja" class="form-select" style="border-radius: 10px;">
+                                                            <option value="AVAILABLE" <?php if($row['status_kerja'] == 'AVAILABLE') echo 'selected'; ?>>AVAILABLE (Tersedia)</option>
+                                                            <option value="OFF" <?php if($row['status_kerja'] == 'OFF') echo 'selected'; ?>>OFF (Cuti / Libur)</option>
+                                                        </select>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
                                             <div class="modal-footer border-0 pb-4 px-4">

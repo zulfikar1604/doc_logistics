@@ -168,7 +168,7 @@ $query_tracking = mysqli_query($conn, "
             // =========================================================================
                 
                 // Ambil Data Spesifik Orderan Ini
-                $q_detail = mysqli_query($conn, "SELECT sj.*, l.nama_lengkap as nama_driver, a.nopol, a.tipe 
+                $q_detail = mysqli_query($conn, "SELECT sj.*, l.nama_lengkap as nama_driver, a.nopol, a.tipe, a.kategori_kendaraan 
                                                  FROM surat_jalan sj 
                                                  JOIN driver d ON sj.id_driver = d.id 
                                                  JOIN login l ON d.id_login = l.id 
@@ -220,6 +220,7 @@ $query_tracking = mysqli_query($conn, "
                                 <div class="col-md-4 mb-3 mb-md-0 border-end">
                                     <div class="small text-muted fw-bold text-uppercase mb-1">Kurir / Armada</div>
                                     <h6 class="fw-bold mb-0 text-dark"><?= $dt['tipe']; ?></h6>
+                                    <div class="small text-muted mb-1"><?= isset($dt['kategori_kendaraan']) ? $dt['kategori_kendaraan'] : 'Belum Dikategori'; ?></div>
                                     <div class="badge bg-dark mt-1 px-3"><?= $dt['nopol']; ?></div>
                                 </div>
                                 <div class="col-md-4 mb-3 mb-md-0 border-end">

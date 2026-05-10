@@ -7,34 +7,45 @@ if (!isset($_SESSION['log'])) {
     exit();
 }
 
-// 1. LOGIKA TAMBAH UNIT BARU
-if (isset($_POST['tambah_armada'])) {
+// Tangkap Role User (Jika Driver, fitur ubah data disembunyikan)
+$role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'STAF';
+
+// =========================================================================
+// 1. LOGIKA TAMBAH UNIT BARU (Hanya dieksekusi jika bukan Driver)
+// =========================================================================
+if (isset($_POST['tambah_armada']) && $role != 'DRIVER') {
     $nopol     = mysqli_real_escape_string($conn, $_POST['nopol']);
     $tipe      = mysqli_real_escape_string($conn, $_POST['tipe']);
+    $kategori_kendaraan = mysqli_real_escape_string($conn, $_POST['kategori_kendaraan']);
     $kapasitas = mysqli_real_escape_string($conn, $_POST['kapasitas']);
     
-    $query = mysqli_query($conn, "INSERT INTO armada (nopol, tipe, kapasitas, status) VALUES ('$nopol', '$tipe', '$kapasitas', 'READY')");
+    $query = mysqli_query($conn, "INSERT INTO armada (nopol, tipe, kategori_kendaraan, kapasitas, status) VALUES ('$nopol', '$tipe', '$kategori_kendaraan', '$kapasitas', 'READY')");
     if($query) {
         echo "<script>alert('Armada berhasil ditambahkan!'); window.location.href='data_armada.php';</script>";
     }
 }
 
-// 2. LOGIKA EDIT UNIT
-if (isset($_POST['update_armada'])) {
+// =========================================================================
+// 2. LOGIKA EDIT UNIT (Hanya dieksekusi jika bukan Driver)
+// =========================================================================
+if (isset($_POST['update_armada']) && $role != 'DRIVER') {
     $id_armada = $_POST['id_armada'];
     $nopol     = mysqli_real_escape_string($conn, $_POST['nopol']);
     $tipe      = mysqli_real_escape_string($conn, $_POST['tipe']);
+    $kategori_kendaraan = mysqli_real_escape_string($conn, $_POST['kategori_kendaraan']);
     $kapasitas = mysqli_real_escape_string($conn, $_POST['kapasitas']);
     $status    = mysqli_real_escape_string($conn, $_POST['status']);
 
-    $update = mysqli_query($conn, "UPDATE armada SET nopol='$nopol', tipe='$tipe', kapasitas='$kapasitas', status='$status' WHERE id='$id_armada'");
+    $update = mysqli_query($conn, "UPDATE armada SET nopol='$nopol', tipe='$tipe', kategori_kendaraan='$kategori_kendaraan', kapasitas='$kapasitas', status='$status' WHERE id='$id_armada'");
     if ($update) {
         echo "<script>alert('Data armada berhasil diupdate!'); window.location.href='data_armada.php';</script>";
     }
 }
 
-// 3. LOGIKA HAPUS UNIT
-if (isset($_GET['hapus'])) {
+// =========================================================================
+// 3. LOGIKA HAPUS UNIT (Hanya dieksekusi jika bukan Driver)
+// =========================================================================
+if (isset($_GET['hapus']) && $role != 'DRIVER') {
     $id = $_GET['hapus'];
     mysqli_query($conn, "DELETE FROM armada WHERE id='$id'");
     echo "<script>window.location.href='data_armada.php';</script>";
@@ -62,12 +73,25 @@ if (isset($_GET['hapus'])) {
 
         body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); overflow-x: hidden; }
 
+        /* --- CSS WAJIB LAYOUT --- */
         #sidebar {
             width: var(--sidebar-width); position: fixed; top: 0; left: 0; height: 100vh;
             background: linear-gradient(180deg, var(--primary-blue) 0%, #0d1b3e 100%);
-            z-index: 999; display: flex; flex-direction: column;
+            z-index: 1000; display: flex; flex-direction: column; transition: all 0.3s;
         }
-        #main-content { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); min-height: 100vh; display: flex; flex-direction: column;}
+        #main-content {
+            margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); 
+            min-height: 100vh; display: flex; flex-direction: column; transition: all 0.3s;
+        }
+        .top-navbar { background: white; padding: 15px 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 998; }
+        
+        @media (max-width: 768px) {
+            #sidebar { margin-left: calc(var(--sidebar-width) * -1); }
+            #sidebar.show { margin-left: 0; }
+            #main-content { width: 100%; margin-left: 0; }
+            .top-navbar { padding: 15px; }
+        }
+
         .sidebar-header { padding: 25px 20px; background: rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.05); }
         .sidebar-menu { padding: 20px 0; flex-grow: 1; overflow-y: auto; }
         .menu-label { color: rgba(255,255,255,0.4); font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; padding: 0 25px; margin-bottom: 10px; display: block; }
@@ -75,7 +99,6 @@ if (isset($_GET['hapus'])) {
         #sidebar ul li a:hover, #sidebar ul li.active > a { color: #fff; background: rgba(255,255,255,0.1); border-left: 4px solid var(--accent-yellow); }
         #sidebar ul li a i { width: 25px; text-align: center; }
         .sidebar-footer { padding: 20px 25px; background: rgba(0,0,0,0.2); }
-        .top-navbar { background: white; padding: 15px 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 998; }
 
         /* --- TABLE PERCANTIK --- */
         .table-container { 
@@ -131,9 +154,12 @@ if (isset($_GET['hapus'])) {
                     <h3 class="fw-bold mb-1" style="color: #1a367e;">Database Armada</h3>
                     <p class="text-muted small mb-0">List unit kendaraan operasional yang terdaftar di sistem.</p>
                 </div>
+                
+                <?php if($role != 'DRIVER'): ?>
                 <button class="btn btn-primary shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalTambah" style="border-radius: 10px; padding: 10px 24px;">
                     <i class="fas fa-plus me-2"></i> Tambah Unit
                 </button>
+                <?php endif; ?>
             </div>
 
             <div class="table-container">
@@ -144,9 +170,12 @@ if (isset($_GET['hapus'])) {
                                 <th width="80">Unit</th>
                                 <th>No. Polisi</th>
                                 <th>Tipe Kendaraan</th>
+                                <th>Kategori Kendaraan</th>
                                 <th>Kapasitas</th>
                                 <th>Status</th>
+                                <?php if($role != 'DRIVER'): ?>
                                 <th class="text-center">Aksi</th>
+                                <?php endif; ?>
                             </tr>
                         </thead>
                         <tbody>
@@ -178,8 +207,11 @@ if (isset($_GET['hapus'])) {
                                 </td>
                                 <td><span class="fw-bold text-dark" style="letter-spacing: 0.5px;"><?= $row['nopol']; ?></span></td>
                                 <td><?= $row['tipe']; ?></td>
+                                <td><span class="badge bg-secondary"><?= isset($row['kategori_kendaraan']) ? $row['kategori_kendaraan'] : '-'; ?></span></td>
                                 <td><i class="fas fa-weight-hanging me-2 text-muted"></i><?= $row['kapasitas']; ?></td>
                                 <td><span class="badge-status <?= $badge; ?>"><?= $st; ?></span></td>
+                                
+                                <?php if($role != 'DRIVER'): ?>
                                 <td class="text-center">
                                     <button class="btn btn-action btn-action-edit me-1" data-bs-toggle="modal" data-bs-target="#modalEdit<?= $row['id']; ?>" title="Edit Unit">
                                         <i class="fas fa-pen-to-square"></i>
@@ -188,8 +220,10 @@ if (isset($_GET['hapus'])) {
                                         <i class="fas fa-trash-can"></i>
                                     </a>
                                 </td>
+                                <?php endif; ?>
                             </tr>
 
+                            <?php if($role != 'DRIVER'): ?>
                             <div class="modal fade" id="modalEdit<?= $row['id']; ?>" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog modal-dialog-centered">
                                     <div class="modal-content" style="border-radius: 16px; border: none;">
@@ -209,17 +243,29 @@ if (isset($_GET['hapus'])) {
                                                     <input type="text" name="tipe" class="form-control" style="border-radius: 10px;" value="<?= $row['tipe']; ?>" required>
                                                 </div>
                                                 <div class="mb-3">
+                                                    <label class="small fw-bold text-muted mb-2">Kategori Kendaraan</label>
+                                                    <select name="kategori_kendaraan" class="form-select" style="border-radius: 10px;" required>
+                                                        <option value="Motor Roda 2" <?= (isset($row['kategori_kendaraan']) && $row['kategori_kendaraan'] == 'Motor Roda 2') ? 'selected' : ''; ?>>Motor Roda 2</option>
+                                                        <option value="Mobil Roda 4" <?= (isset($row['kategori_kendaraan']) && $row['kategori_kendaraan'] == 'Mobil Roda 4') ? 'selected' : ''; ?>>Mobil Roda 4</option>
+                                                        <option value="Truk Roda 6" <?= (isset($row['kategori_kendaraan']) && $row['kategori_kendaraan'] == 'Truk Roda 6') ? 'selected' : ''; ?>>Truk Roda 6</option>
+                                                        <option value="Truk Besar Roda 10+" <?= (isset($row['kategori_kendaraan']) && $row['kategori_kendaraan'] == 'Truk Besar Roda 10+') ? 'selected' : ''; ?>>Truk Besar Roda 10+</option>
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
                                                     <label class="small fw-bold text-muted mb-2">Kapasitas Muatan</label>
                                                     <input type="text" name="kapasitas" class="form-control" style="border-radius: 10px;" value="<?= $row['kapasitas']; ?>" required>
                                                 </div>
                                                 <div class="mb-3">
                                                     <label class="small fw-bold text-muted mb-2">Status Operasional</label>
-                                                    <select name="status" class="form-select" style="border-radius: 10px;">
-                                                        <option value="READY" <?= ($st == 'READY') ? 'selected' : ''; ?>>READY (Siap Jalan)</option>
-                                                        <option value="ON TRIP" <?= ($st == 'ON TRIP') ? 'selected' : ''; ?>>ON TRIP (Bertugas)</option>
-                                                        <option value="RETURNING" <?= ($st == 'RETURNING') ? 'selected' : ''; ?>>RETURNING (Perjalanan Pulang)</option>
-                                                        <option value="MAINTENANCE" <?= ($st == 'MAINTENANCE') ? 'selected' : ''; ?>>MAINTENANCE (Perbaikan)</option>
-                                                    </select>
+                                                    <?php if($st == 'ON TRIP' || $st == 'RETURNING'): ?>
+                                                        <input type="text" class="form-control" value="<?= $st; ?> (Dikelola Sistem)" disabled style="border-radius: 10px;">
+                                                        <input type="hidden" name="status" value="<?= $st; ?>">
+                                                    <?php else: ?>
+                                                        <select name="status" class="form-select" style="border-radius: 10px;">
+                                                            <option value="READY" <?= ($st == 'READY') ? 'selected' : ''; ?>>READY (Siap Jalan)</option>
+                                                            <option value="MAINTENANCE" <?= ($st == 'MAINTENANCE') ? 'selected' : ''; ?>>MAINTENANCE (Perbaikan)</option>
+                                                        </select>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
                                             <div class="modal-footer border-0 pb-4 px-4">
@@ -229,6 +275,8 @@ if (isset($_GET['hapus'])) {
                                     </div>
                                 </div>
                             </div>
+                            <?php endif; ?>
+
                             <?php } ?>
                         </tbody>
                     </table>
@@ -237,6 +285,7 @@ if (isset($_GET['hapus'])) {
         </div>
     </div>
 
+    <?php if($role != 'DRIVER'): ?>
     <div class="modal fade" id="modalTambah" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content" style="border-radius: 16px; border: none;">
@@ -255,6 +304,16 @@ if (isset($_GET['hapus'])) {
                             <input type="text" name="tipe" class="form-control" placeholder="Hino Ranger / Wingbox" required style="border-radius: 10px;">
                         </div>
                         <div class="mb-3">
+                            <label class="small fw-bold text-muted mb-2">Kategori Kendaraan</label>
+                            <select name="kategori_kendaraan" class="form-select" style="border-radius: 10px;" required>
+                                <option value="" disabled selected>Pilih Kategori</option>
+                                <option value="Motor Roda 2">Motor Roda 2</option>
+                                <option value="Mobil Roda 4">Mobil Roda 4</option>
+                                <option value="Truk Roda 6">Truk Roda 6</option>
+                                <option value="Truk Besar Roda 10+">Truk Besar Roda 10+</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
                             <label class="small fw-bold text-muted mb-2">Kapasitas Muatan</label>
                             <input type="text" name="kapasitas" class="form-control" placeholder="20 Ton" required style="border-radius: 10px;">
                         </div>
@@ -266,6 +325,7 @@ if (isset($_GET['hapus'])) {
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -276,6 +336,11 @@ if (isset($_GET['hapus'])) {
             $('#dataTableArmada').DataTable({
                 "language": { "search": "Cari Unit:", "lengthMenu": "Tampil _MENU_" }
             });
+        });
+
+        // Script Sidebar Toggle untuk Mobile
+        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('show');
         });
     </script>
 </body>

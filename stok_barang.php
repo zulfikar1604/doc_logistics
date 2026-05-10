@@ -10,7 +10,7 @@ if (!isset($_SESSION['log'])) {
 // --- 1. LOGIKA SIMPAN BARANG BARU ---
 if (isset($_POST['tambah_stok'])) {
     $nama_barang = mysqli_real_escape_string($conn, $_POST['nama_barang']);
-    $kategori    = mysqli_real_escape_string($conn, $_POST['kategori']);
+    $kategori = mysqli_real_escape_string($conn, $_POST['kategori_select']);
     $stok        = mysqli_real_escape_string($conn, $_POST['stok']);
     $satuan      = mysqli_real_escape_string($conn, $_POST['satuan']);
     $harga       = mysqli_real_escape_string($conn, $_POST['harga']); // TAMBAHAN: Harga
@@ -28,7 +28,7 @@ if (isset($_POST['tambah_stok'])) {
 if (isset($_POST['edit_stok'])) {
     $id_barang   = mysqli_real_escape_string($conn, $_POST['id_barang']);
     $nama_barang = mysqli_real_escape_string($conn, $_POST['nama_barang']);
-    $kategori    = mysqli_real_escape_string($conn, $_POST['kategori']);
+    $kategori = mysqli_real_escape_string($conn, $_POST['kategori_select']);
     $stok        = mysqli_real_escape_string($conn, $_POST['stok']);
     $satuan      = mysqli_real_escape_string($conn, $_POST['satuan']);
     $harga       = mysqli_real_escape_string($conn, $_POST['harga']); // TAMBAHAN: Harga
@@ -51,6 +51,13 @@ if (isset($_GET['hapus'])) {
 
 // Ambil data stok untuk ditampilkan di tabel
 $query_stok = mysqli_query($conn, "SELECT * FROM stok_barang ORDER BY id DESC");
+
+// Ambil data kategori dari tabel kategori_barang
+$query_kategori = mysqli_query($conn, "SELECT * FROM kategori_barang ORDER BY nama_kategori ASC");
+$all_kategori = [];
+while ($kat = mysqli_fetch_assoc($query_kategori)) {
+    $all_kategori[] = $kat['nama_kategori'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -181,11 +188,10 @@ $query_stok = mysqli_query($conn, "SELECT * FROM stok_barang ORDER BY id DESC");
                                                 </div>
                                                 <div class="mb-3">
                                                     <label class="small fw-bold text-muted mb-2">Kategori</label>
-                                                    <select name="kategori" class="form-select form-control-sultan">
-                                                        <option value="Home Appliances" <?= ($row['kategori'] == 'Home Appliances') ? 'selected' : ''; ?>>Home Appliances</option>
-                                                        <option value="Gadgets" <?= ($row['kategori'] == 'Gadgets') ? 'selected' : ''; ?>>Gadgets</option>
-                                                        <option value="Office Electronic" <?= ($row['kategori'] == 'Office Electronic') ? 'selected' : ''; ?>>Office Electronic</option>
-                                                        <option value="Spareparts" <?= ($row['kategori'] == 'Spareparts') ? 'selected' : ''; ?>>Spareparts</option>
+                                                    <select name="kategori_select" class="form-select form-control-sultan" required>
+                                                        <?php foreach($all_kategori as $k): ?>
+                                                            <option value="<?= htmlspecialchars($k); ?>" <?= ($row['kategori'] == $k) ? 'selected' : ''; ?>><?= htmlspecialchars($k); ?></option>
+                                                        <?php endforeach; ?>
                                                     </select>
                                                 </div>
                                                 <div class="mb-3">
@@ -238,11 +244,11 @@ $query_stok = mysqli_query($conn, "SELECT * FROM stok_barang ORDER BY id DESC");
                         </div>
                         <div class="mb-3">
                             <label class="small fw-bold text-muted mb-2">Kategori</label>
-                            <select name="kategori" class="form-select form-control-sultan">
-                                <option value="Home Appliances">Home Appliances</option>
-                                <option value="Gadgets">Gadgets</option>
-                                <option value="Office Electronic">Office Electronic</option>
-                                <option value="Spareparts">Spareparts</option>
+                            <select name="kategori_select" class="form-select form-control-sultan" required>
+                                <option value="" disabled selected>Pilih Kategori</option>
+                                <?php foreach($all_kategori as $k): ?>
+                                    <option value="<?= htmlspecialchars($k); ?>"><?= htmlspecialchars($k); ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="mb-3">

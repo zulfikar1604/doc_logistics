@@ -134,7 +134,8 @@ while($s = mysqli_fetch_assoc($query_stok_barang)){
                                 // Ambil data armada dari database
                                 $q_mobil = mysqli_query($conn, "SELECT * FROM armada");
                                 while($m = mysqli_fetch_assoc($q_mobil)) {
-                                    echo "<option value='".$m['id']."'>".$m['nopol']." - ".$m['tipe']."</option>";
+                                    $kategori = isset($m['kategori_kendaraan']) && !empty($m['kategori_kendaraan']) ? $m['kategori_kendaraan'] : 'Kategori -';
+                                    echo "<option value='".$m['id']."'>".$m['nopol']." - ".$m['tipe']." (".$kategori.")</option>";
                                 }
                                 ?>
                             </select>
@@ -145,13 +146,22 @@ while($s = mysqli_fetch_assoc($query_stok_barang)){
                         <div class="col-12">
                             <div class="form-section-title"><i class="fas fa-map-marker-alt me-2"></i> Detail Tujuan</div>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label>Nama Penerima / Perusahaan</label>
                             <input type="text" class="form-control form-control-sultan" placeholder="Contoh: PT. Maju Jaya Bersama" name="penerima" required>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label>Kota Tujuan</label>
                             <input type="text" class="form-control form-control-sultan" placeholder="Contoh: Surabaya" name="kota_tujuan" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label>Zona Pengiriman (Ongkir)</label>
+                            <select class="form-select form-control-sultan" name="zona_pengiriman" required>
+                                <option value="" disabled selected>-- Pilih Zona --</option>
+                                <option value="1">Zona 1: Jabodetabek (Rp 50.000 / Satuan)</option>
+                                <option value="2">Zona 2: P. Jawa - Luar Jabodetabek (Rp 150.000 / Satuan)</option>
+                                <option value="3">Zona 3: Luar Pulau Jawa (Rp 300.000 / Satuan)</option>
+                            </select>
                         </div>
                         <div class="col-12 mb-3">
                             <label>Alamat Lengkap Bongkar</label>

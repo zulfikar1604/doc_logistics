@@ -8,6 +8,9 @@ if (!isset($_SESSION['log'])) {
     exit();
 }
 
+// Tangkap Role User
+$role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'STAF';
+
 // --- HITUNG DATA REAL-TIME DARI DATABASE ---
 $total_dokumen = mysqli_num_rows(mysqli_query($conn, "SELECT id FROM surat_jalan"));
 $driver_aktif = mysqli_num_rows(mysqli_query($conn, "SELECT id FROM driver WHERE status_kerja = 'ON TRIP'"));
@@ -40,10 +43,16 @@ $unpaid_invoice = mysqli_num_rows(mysqli_query($conn, "SELECT id FROM invoice WH
         #sidebar {
             width: var(--sidebar-width); position: fixed; top: 0; left: 0; height: 100vh;
             background: linear-gradient(180deg, var(--primary-blue) 0%, #0d1b3e 100%);
-            z-index: 999; display: flex; flex-direction: column;
+            z-index: 1000; display: flex; flex-direction: column; transition: all 0.3s;
         }
-        #main-content { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); min-height: 100vh; }
+        #main-content { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); min-height: 100vh; transition: all 0.3s; }
         
+        @media (max-width: 768px) {
+            #sidebar { margin-left: calc(var(--sidebar-width) * -1); }
+            #sidebar.show { margin-left: 0; }
+            #main-content { width: 100%; margin-left: 0; }
+        }
+
         .sidebar-header { padding: 25px 20px; background: rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.05); }
         .sidebar-menu { padding: 20px 0; flex-grow: 1; overflow-y: auto; }
         .menu-label { color: rgba(255,255,255,0.4); font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; padding: 0 25px; margin-bottom: 10px; display: block; }
@@ -73,16 +82,7 @@ $unpaid_invoice = mysqli_num_rows(mysqli_query($conn, "SELECT id FROM invoice WH
 
     <div id="main-content">
         
-        <nav class="top-navbar d-flex justify-content-between align-items-center">
-            <h5 class="mb-0 fw-bold text-secondary">Command Center Overview</h5>
-            <div class="user-info d-flex align-items-center">
-                <div class="text-end me-3 d-none d-md-block">
-                    <small class="text-muted d-block" style="font-size: 0.65rem;">SISTEM LOGISTIK</small>
-                    <span class="small fw-bold">Halo, <?= $_SESSION['nama_lengkap'] ?? 'Admin'; ?></span>
-                </div>
-                <img src="https://ui-avatars.com/api/?name=<?= $_SESSION['nama_lengkap'] ?? 'Admin'; ?>&background=1a367e&color=fff" class="rounded-circle border" width="38">
-            </div>
-        </nav>
+        <?php include 'navbar.php'; ?>
 
         <div class="container-fluid p-4">
             
@@ -179,20 +179,31 @@ $unpaid_invoice = mysqli_num_rows(mysqli_query($conn, "SELECT id FROM invoice WH
                 <div class="col-lg-4">
                     <div class="glass-panel bg-dark text-white border-0 h-100" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;">
                         <h6 class="fw-bold mb-4">Quick Actions</h6>
+                        
                         <div class="d-grid gap-3">
-                            <a href="buat_surat_jalan.php" class="btn btn-primary py-3 rounded-4 fw-bold shadow-sm">
-                                <i class="fas fa-plus-circle me-2"></i> Terbitkan SJ Baru
-                            </a>
-                            <a href="invoice_pengiriman.php" class="btn btn-outline-light py-3 rounded-4 fw-bold">
-                                <i class="fas fa-file-invoice-dollar me-2"></i> Buat Invoice Klien
-                            </a>
+                            <?php if($role != 'DRIVER'): ?>
+                                <a href="buat_surat_jalan.php" class="btn btn-primary py-3 rounded-4 fw-bold shadow-sm">
+                                    <i class="fas fa-plus-circle me-2"></i> Terbitkan SJ Baru
+                                </a>
+                                <a href="invoice_pengiriman.php" class="btn btn-outline-light py-3 rounded-4 fw-bold">
+                                    <i class="fas fa-file-invoice-dollar me-2"></i> Buat Invoice Klien
+                                </a>
+                            <?php else: ?>
+                                <a href="dashboard_driver.php" class="btn btn-success py-3 rounded-4 fw-bold shadow-sm" style="background: #10b981; border: none;">
+                                    <i class="fas fa-route me-2"></i> Lihat Tugas Saya
+                                </a>
+                                <a href="manajemen_dokumen.php" class="btn btn-outline-light py-3 rounded-4 fw-bold">
+                                    <i class="fas fa-history me-2"></i> Riwayat Pengiriman
+                                </a>
+                            <?php endif; ?>
                         </div>
+
                         <div class="mt-5 p-4 rounded-4 bg-white bg-opacity-10 border border-white border-opacity-10">
                             <div class="d-flex align-items-center mb-3">
                                 <i class="fas fa-user-shield text-warning fs-4 me-3"></i>
                                 <div>
-                                    <small class="d-block opacity-50 fw-bold" style="font-size: 0.6rem;">AUTHENTICATED</small>
-                                    <span class="fw-bold small"><?= $_SESSION['nama_lengkap'] ?? 'Administrator'; ?></span>
+                                    <small class="d-block opacity-50 fw-bold" style="font-size: 0.6rem;">AUTHENTICATED AS</small>
+                                    <span class="fw-bold small"><?= $_SESSION['nama_lengkap'] ?? 'Administrator'; ?> <span class="text-warning">(<?= $role; ?>)</span></span>
                                 </div>
                             </div>
                             <a href="keluar.php" class="btn btn-danger btn-sm w-100 rounded-pill mt-2">Keluar Sistem</a>
@@ -204,6 +215,13 @@ $unpaid_invoice = mysqli_num_rows(mysqli_query($conn, "SELECT id FROM invoice WH
         </div>
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Script Sidebar Toggle untuk Mobile
+        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('show');
+        });
+    </script>
 </body>
 </html>

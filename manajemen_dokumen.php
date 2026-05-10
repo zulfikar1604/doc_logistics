@@ -1,12 +1,15 @@
 <?php
 session_start();
-require 'koneksi.php'; // WAJIB panggil koneksi database
+require 'koneksi.php'; 
 
-// PERBAIKAN FATAL: Keamanan Session
+// Cek Keamanan Session
 if (!isset($_SESSION['log'])) {
     header('location:login.php');
     exit();
 }
+
+// Tangkap Role User
+$role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'STAF';
 
 // Logika Filter Tanggal (Jika user mengisi filter)
 $filter_query = "";
@@ -26,7 +29,6 @@ if (isset($_GET['tgl_mulai']) && isset($_GET['tgl_selesai']) && !empty($_GET['tg
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
     
     <style>
@@ -39,13 +41,25 @@ if (isset($_GET['tgl_mulai']) && isset($_GET['tgl_selesai']) && !empty($_GET['tg
 
         body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); overflow-x: hidden; }
 
-        /* --- CSS WAJIB LAYOUT ANTI TABRAKAN --- */
+        /* --- CSS WAJIB LAYOUT --- */
         #sidebar {
             width: var(--sidebar-width); position: fixed; top: 0; left: 0; height: 100vh;
             background: linear-gradient(180deg, var(--primary-blue) 0%, #0d1b3e 100%);
-            z-index: 999; display: flex; flex-direction: column;
+            z-index: 1000; display: flex; flex-direction: column; transition: all 0.3s;
         }
-        #main-content { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); min-height: 100vh; display: flex; flex-direction: column; }
+        #main-content {
+            margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); 
+            min-height: 100vh; display: flex; flex-direction: column; transition: all 0.3s;
+        }
+        .top-navbar { background: white; padding: 15px 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 998; }
+        
+        @media (max-width: 768px) {
+            #sidebar { margin-left: calc(var(--sidebar-width) * -1); }
+            #sidebar.show { margin-left: 0; }
+            #main-content { width: 100%; margin-left: 0; }
+            .top-navbar { padding: 15px; }
+        }
+
         .sidebar-header { padding: 25px 20px; background: rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.05); }
         .sidebar-menu { padding: 20px 0; flex-grow: 1; overflow-y: auto; }
         .menu-label { color: rgba(255,255,255,0.4); font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; padding: 0 25px; margin-bottom: 10px; display: block; }
@@ -54,7 +68,6 @@ if (isset($_GET['tgl_mulai']) && isset($_GET['tgl_selesai']) && !empty($_GET['tg
         #sidebar ul li a i { width: 25px; text-align: center; }
         .submenu a { padding-left: 50px !important; font-size: 0.8rem !important; }
         .sidebar-footer { padding: 20px 25px; background: rgba(0,0,0,0.2); }
-        .top-navbar { background: white; padding: 15px 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 998; }
 
         /* --- DESAIN CARD & FILTER SULTAN --- */
         .card-filter { border: none; border-radius: 20px; background: #ffffff; box-shadow: 0 10px 30px rgba(0,0,0,0.03); margin-bottom: 30px; padding: 20px; border: 1px solid rgba(0,0,0,0.05); }
@@ -72,11 +85,10 @@ if (isset($_GET['tgl_mulai']) && isset($_GET['tgl_selesai']) && !empty($_GET['tg
         .table thead th { background-color: #f8fafc; border: none; color: #475569; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; padding: 15px; border-bottom: 2px solid #e2e8f0 !important; }
         .table tbody td { padding: 15px; vertical-align: middle; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; }
         
-        .badge-sultan { padding: 8px 15px; border-radius: 50px; font-weight: 600; font-size: 0.75rem; letter-spacing: 0.5px; }
-        .bg-ontrip { background-color: #e0f2fe; color: #0369a1; }
-        .bg-selesai { background-color: #d1fae5; color: #065f46; }
+        .badge-sultan { padding: 8px 15px; border-radius: 50px; font-weight: 600; font-size: 0.75rem; letter-spacing: 0.5px; display: inline-block;}
+        .bg-ontrip { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;}
+        .bg-selesai { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0;}
         
-        /* Custom Pagination DataTables */
         .page-item.active .page-link { background-color: var(--primary-blue); border-color: var(--primary-blue); }
     </style>
 </head>
@@ -120,9 +132,12 @@ if (isset($_GET['tgl_mulai']) && isset($_GET['tgl_selesai']) && !empty($_GET['tg
                     <div class="section-title mb-0">
                         <i class="fas fa-archive"></i> Arsip Surat Jalan
                     </div>
-                    <button onclick="window.print()" class="btn btn-light border text-primary btn-sm fw-bold mt-2 mt-md-0" style="border-radius: 8px;">
-                        <i class="fas fa-file-excel me-2"></i> Export Excel
+                    
+                    <?php if($role != 'DRIVER'): ?>
+                    <button onclick="window.print()" class="btn btn-light border text-primary btn-sm fw-bold mt-2 mt-md-0 shadow-sm" style="border-radius: 8px; padding: 8px 16px;">
+                        <i class="fas fa-file-excel me-2"></i> Export Laporan
                     </button>
+                    <?php endif; ?>
                 </div>
                 
                 <div class="table-responsive">
@@ -134,7 +149,9 @@ if (isset($_GET['tgl_mulai']) && isset($_GET['tgl_selesai']) && !empty($_GET['tg
                                 <th>Driver</th>
                                 <th>Tujuan & Penerima</th>
                                 <th>Status</th>
+                                <?php if($role != 'DRIVER'): ?>
                                 <th class="text-center">Aksi</th>
+                                <?php endif; ?>
                             </tr>
                         </thead>
                         <tbody>
@@ -153,18 +170,25 @@ if (isset($_GET['tgl_mulai']) && isset($_GET['tgl_selesai']) && !empty($_GET['tg
                                 $badge_class = ($status == 'ON TRIP') ? 'bg-ontrip' : 'bg-selesai';
                             ?>
                             <tr>
-                                <td><?= date('d M Y', strtotime($row['tgl_kirim'])) ?></td>
-                                <td><span class="fw-bold text-primary"><?= $row['no_sj'] ?></span></td>
-                                <td><?= $row['nama_driver'] ?></td>
+                                <td><span class="fw-medium text-secondary"><?= date('d M Y', strtotime($row['tgl_kirim'])) ?></span></td>
+                                <td><span class="fw-bold text-primary" style="letter-spacing: 0.5px;"><?= $row['no_sj'] ?></span></td>
+                                <td><i class="fas fa-user-circle text-muted me-2"></i><?= $row['nama_driver'] ?></td>
                                 <td>
                                     <div class="fw-bold text-dark"><?= $row['penerima'] ?></div>
                                     <small class="text-muted"><i class="fas fa-map-marker-alt text-danger me-1"></i> <?= $row['kota_tujuan'] ?></small>
                                 </td>
                                 <td><span class="badge-sultan <?= $badge_class ?>"><?= $status ?></span></td>
+                                
+                                <?php if($role != 'DRIVER'): ?>
                                 <td class="text-center">
-                                    <button class="btn btn-sm btn-light border text-primary shadow-sm" title="Detail"><i class="fas fa-eye"></i></button>
-                                    <button class="btn btn-sm btn-light border text-secondary shadow-sm" title="Download"><i class="fas fa-download"></i></button>
+                                    <button class="btn btn-sm btn-light border text-primary shadow-sm me-1" title="Detail Dokumen" style="border-radius: 8px;">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-light border text-secondary shadow-sm" title="Download PDF" style="border-radius: 8px;">
+                                        <i class="fas fa-download"></i>
+                                    </button>
                                 </td>
+                                <?php endif; ?>
                             </tr>
                             <?php } ?>
                         </tbody>
@@ -176,7 +200,7 @@ if (isset($_GET['tgl_mulai']) && isset($_GET['tgl_selesai']) && !empty($_GET['tg
         <footer class="py-4 bg-white mt-auto border-top">
             <div class="container-fluid px-4">
                 <div class="d-flex align-items-center justify-content-between small text-muted">
-                    <div>Copyright &copy; PT. Global Logistics <?php echo date('Y'); ?></div>
+                    <div class="fw-medium">Copyright &copy; PT. Global Logistics <?php echo date('Y'); ?></div>
                     <div>v2.1.0 (Live Data)</div>
                 </div>
             </div>
@@ -204,6 +228,11 @@ if (isset($_GET['tgl_mulai']) && isset($_GET['tgl_selesai']) && !empty($_GET['tg
                     $('.dataTables_paginate > .pagination').addClass('pagination-sm');
                 }
             });
+        });
+
+        // Script Sidebar Toggle untuk Mobile
+        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('show');
         });
     </script>
 </body>

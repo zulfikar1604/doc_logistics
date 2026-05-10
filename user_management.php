@@ -7,12 +7,32 @@ if (!isset($_SESSION['log'])) {
     exit();
 }
 
-// Proses Hapus User (Logika Sederhana)
-if (isset($_GET['hapus'])) {
-    $id = $_GET['hapus'];
-    $hapus = mysqli_query($conn, "DELETE FROM login WHERE id='$id'");
-    if ($hapus) {
-        echo "<script>alert('User berhasil dihapus!'); window.location.href='user_management.php';</script>";
+// Proses Resign User
+if (isset($_GET['resign'])) {
+    $id = $_GET['resign'];
+    
+    // 1. Ambil data user sebelum dihapus
+    $get_user = mysqli_query($conn, "SELECT * FROM login WHERE id='$id'");
+    $user_data = mysqli_fetch_assoc($get_user);
+    
+    if ($user_data) {
+        $nama_lengkap = $user_data['nama_lengkap'];
+        $username = $user_data['username'];
+        $email = $user_data['email'];
+        $role = $user_data['role'];
+        
+        // 2. Insert ke tabel karyawan_resign
+        $insert_resign = mysqli_query($conn, "INSERT INTO karyawan_resign (nama_lengkap, username, email, role) VALUES ('$nama_lengkap', '$username', '$email', '$role')");
+        
+        if ($insert_resign) {
+            // 3. Hapus dari tabel login
+            $hapus = mysqli_query($conn, "DELETE FROM login WHERE id='$id'");
+            if ($hapus) {
+                echo "<script>alert('Karyawan berhasil di-resign dan diarsipkan!'); window.location.href='user_management.php';</script>";
+            }
+        } else {
+            echo "<script>alert('Gagal mengarsipkan data!'); window.location.href='user_management.php';</script>";
+        }
     }
 }
 ?>
@@ -180,8 +200,8 @@ if (isset($_GET['hapus'])) {
                                     <button class="btn btn-action btn-light border text-primary me-1" title="Edit User" data-bs-toggle="modal" data-bs-target="#modalEdit<?php echo $row['id']; ?>">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <a href="user_management.php?hapus=<?php echo $row['id']; ?>" class="btn btn-action btn-light border text-danger" title="Hapus User" onclick="return confirm('Apakah Anda yakin ingin menghapus user ini?')">
-                                        <i class="fas fa-trash"></i>
+                                    <a href="user_management.php?resign=<?php echo $row['id']; ?>" class="btn btn-action btn-light border text-danger" title="Resign Karyawan" onclick="return confirm('Apakah Anda yakin karyawan ini resign? Data akan dipindah ke arsip dan dihapus dari sini.')">
+                                        <i class="fas fa-user-times"></i>
                                     </a>
                                 </td>
                             </tr>

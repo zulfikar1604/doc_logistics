@@ -1,3 +1,22 @@
+<?php
+// Cek foto profil dari database untuk ditampilkan di Navbar
+$nav_email = $_SESSION['email'] ?? '';
+$nav_nama = $_SESSION['nama_lengkap'] ?? 'Admin';
+// Set default avatar jika belum ada foto
+$nav_foto_url = "https://ui-avatars.com/api/?name=".urlencode($nav_nama)."&background=1a367e&color=fff&rounded=true";
+
+// Jika koneksi tersedia dan email ada, tarik foto asli dari database
+if (!empty($nav_email) && isset($conn)) {
+    $q_nav_foto = mysqli_query($conn, "SELECT foto FROM login WHERE email = '$nav_email'");
+    if ($q_nav_foto && mysqli_num_rows($q_nav_foto) > 0) {
+        $d_nav_foto = mysqli_fetch_assoc($q_nav_foto);
+        if (!empty($d_nav_foto['foto'])) {
+            // Timpa dengan foto dari folder assets/img/
+            $nav_foto_url = "assets/img/" . $d_nav_foto['foto'];
+        }
+    }
+}
+?>
 <nav class="top-navbar d-flex justify-content-between align-items-center">
     <div class="d-flex align-items-center">
         <button type="button" class="btn btn-light d-md-none me-3" id="sidebarToggle">
@@ -44,9 +63,9 @@
                         <?php echo isset($_SESSION['role']) ? $_SESSION['role'] : 'STAFF LOGISTIK'; ?>
                     </p>
                 </div>
-                <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($_SESSION['nama_lengkap'] ?? 'Admin'); ?>&background=1a367e&color=fff&rounded=true" 
+                <img src="<?php echo $nav_foto_url; ?>" 
                      class="rounded-circle shadow-sm border border-2 border-white" 
-                     width="40" height="40" alt="User Avatar">
+                     width="40" height="40" alt="User Avatar" style="object-fit: cover;">
             </a>
             <ul class="dropdown-menu dropdown-menu-end border-0 shadow mt-3" aria-labelledby="userMenu" style="border-radius: 15px; min-width: 200px;">
                 <li class="px-3 py-2 border-bottom mb-2 d-md-none">

@@ -3,7 +3,7 @@ session_start();
 require 'koneksi.php';
 
 // Pastikan yang mengakses file ini hanya Admin yang sudah login
-if (!isset($_SESSION['log']) || $_SESSION['role'] != 'manager') {
+if (!isset($_SESSION['log']) || $_SESSION['role'] != 'MANAGER') {
     echo "<script>alert('Akses Ditolak!'); window.location.href='index.php';</script>";
     exit();
 }
