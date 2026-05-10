@@ -1,0 +1,6 @@
+# Abaikan folder XAMPP / Mac files
+.DS_Store
+.vscode/
+
+# Kalau nanti kamu upload ke repo PUBLIC, nama file database/koneksi bisa ditaruh sini
+# koneksi.php
