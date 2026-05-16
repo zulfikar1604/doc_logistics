@@ -16,7 +16,17 @@ $filter_query = "";
 if (isset($_GET['tgl_mulai']) && isset($_GET['tgl_selesai']) && !empty($_GET['tgl_mulai'])) {
     $mulai = $_GET['tgl_mulai'];
     $selesai = $_GET['tgl_selesai'];
-    $filter_query = " AND tgl_kirim BETWEEN '$mulai' AND '$selesai' ";
+    $filter_query .= " AND tgl_kirim BETWEEN '$mulai' AND '$selesai' ";
+}
+
+if ($role == 'DRIVER') {
+    $email_driver = mysqli_real_escape_string($conn, $_SESSION['email']);
+    $q_driver = mysqli_query($conn, "SELECT d.id FROM driver d JOIN login l ON d.id_login = l.id WHERE l.email = '$email_driver'");
+    if ($drv = mysqli_fetch_assoc($q_driver)) {
+        $filter_query .= " AND sj.id_driver = '" . $drv['id'] . "' ";
+    } else {
+        $filter_query .= " AND sj.id_driver = '0' "; // prevent showing others
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -167,7 +177,11 @@ if (isset($_GET['tgl_mulai']) && isset($_GET['tgl_selesai']) && !empty($_GET['tg
                             $query = mysqli_query($conn, $sql);
                             while ($row = mysqli_fetch_assoc($query)) {
                                 $status = $row['status'];
-                                $badge_class = ($status == 'ON TRIP') ? 'bg-ontrip' : 'bg-selesai';
+                                if ($status == 'ON TRIP') { $badge_class = 'bg-ontrip'; }
+                                elseif ($status == 'RETURNING') { $badge_class = 'bg-warning text-dark'; }
+                                elseif ($status == 'DELIVERED') { $badge_class = 'bg-selesai'; }
+                                elseif ($status == 'FINISHED') { $badge_class = 'bg-selesai'; }
+                                else { $badge_class = 'bg-secondary text-white'; }
                             ?>
                             <tr>
                                 <td><span class="fw-medium text-secondary"><?= date('d M Y', strtotime($row['tgl_kirim'])) ?></span></td>
@@ -177,16 +191,16 @@ if (isset($_GET['tgl_mulai']) && isset($_GET['tgl_selesai']) && !empty($_GET['tg
                                     <div class="fw-bold text-dark"><?= $row['penerima'] ?></div>
                                     <small class="text-muted"><i class="fas fa-map-marker-alt text-danger me-1"></i> <?= $row['kota_tujuan'] ?></small>
                                 </td>
-                                <td><span class="badge-sultan <?= $badge_class ?>"><?= $status ?></span></td>
+                                <td><span class="badge-sultan <?= $badge_class ?>"><?= $status ?: 'N/A' ?></span></td>
                                 
                                 <?php if($role != 'DRIVER'): ?>
                                 <td class="text-center">
-                                    <button class="btn btn-sm btn-light border text-primary shadow-sm me-1" title="Detail Dokumen" style="border-radius: 8px;">
+                                    <a href="cetak_surat_jalan.php?id=<?= $row['id'] ?>" target="_blank" class="btn btn-sm btn-light border text-primary shadow-sm me-1" title="Detail Dokumen" style="border-radius: 8px;">
                                         <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-light border text-secondary shadow-sm" title="Download PDF" style="border-radius: 8px;">
-                                        <i class="fas fa-download"></i>
-                                    </button>
+                                    </a>
+                                    <a href="cetak_surat_jalan.php?id=<?= $row['id'] ?>&download=1" target="_blank" class="btn btn-sm btn-light border text-secondary shadow-sm" title="Download PDF" style="border-radius: 8px;">
+                                        <i class="fas fa-print"></i>
+                                    </a>
                                 </td>
                                 <?php endif; ?>
                             </tr>

@@ -13,6 +13,13 @@ if (isset($_GET['hapus'])) {
     mysqli_query($conn, "DELETE FROM invoice WHERE id='$id'");
     echo "<script>window.location.href='manajemen_invoice.php';</script>";
 }
+
+// Logika Tandai Lunas
+if (isset($_GET['lunas'])) {
+    $id = mysqli_real_escape_string($conn, $_GET['lunas']);
+    mysqli_query($conn, "UPDATE invoice SET status='PAID' WHERE id='$id'");
+    echo "<script>alert('Invoice berhasil ditandai LUNAS!'); window.location.href='manajemen_invoice.php';</script>";
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -97,9 +104,11 @@ if (isset($_GET['hapus'])) {
                                 <td class="fw-bold text-dark">Rp <?= number_format($row['total_tagihan'], 0, ',', '.'); ?></td>
                                 <td><span class="badge-status <?= $badge; ?>"><?= $status; ?></span></td>
                                 <td class="text-center">
-                                    <button class="btn btn-sm btn-light border text-info" title="Lihat Detail"><i class="fas fa-eye"></i></button>
-                                    <button class="btn btn-sm btn-light border text-success" title="Cetak PDF"><i class="fas fa-file-pdf"></i></button>
-                                    <a href="manajemen_invoice.php?hapus=<?= $row['id']; ?>" class="btn btn-sm btn-light border text-danger" onclick="return confirm('Hapus invoice ini?')"><i class="fas fa-trash"></i></a>
+                                    <?php if($status == 'UNPAID'): ?>
+                                    <a href="manajemen_invoice.php?lunas=<?= $row['id']; ?>" class="btn btn-sm btn-success shadow-sm me-1" title="Tandai Lunas" onclick="return confirm('Tandai tagihan ini sebagai LUNAS?')"><i class="fas fa-check"></i></a>
+                                    <?php endif; ?>
+                                    <a href="cetak_invoice.php?id=<?= $row['id']; ?>" target="_blank" class="btn btn-sm btn-light border text-primary shadow-sm me-1" title="Lihat/Cetak PDF"><i class="fas fa-print"></i></a>
+                                    <a href="manajemen_invoice.php?hapus=<?= $row['id']; ?>" class="btn btn-sm btn-light border text-danger shadow-sm" onclick="return confirm('Hapus invoice ini?')"><i class="fas fa-trash"></i></a>
                                 </td>
                             </tr>
                             <?php } ?>

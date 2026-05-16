@@ -15,25 +15,26 @@ if (isset($_POST['tgl_kirim'])) {
     $id_armada      = mysqli_real_escape_string($conn, $_POST['kendaraan_id']);
     $penerima       = mysqli_real_escape_string($conn, $_POST['penerima']);
     $kota_tujuan    = mysqli_real_escape_string($conn, $_POST['kota_tujuan']);
-    $zona_pengiriman= mysqli_real_escape_string($conn, $_POST['zona_pengiriman']);
+    $id_route       = mysqli_real_escape_string($conn, $_POST['id_route']);
     $alamat_tujuan  = mysqli_real_escape_string($conn, $_POST['alamat_tujuan']);
 
-    // Tentukan Tarif Ongkir berdasarkan Zona
-    $tarif_per_satuan = 0;
-    if ($zona_pengiriman == '1') {
-        $tarif_per_satuan = 50000;
-    } elseif ($zona_pengiriman == '2') {
-        $tarif_per_satuan = 150000;
-    } elseif ($zona_pengiriman == '3') {
-        $tarif_per_satuan = 300000;
-    }
+    // Tentukan Tarif Ongkir dan Rute Pulang berdasarkan Rute Terpilih
+    $q_rute = mysqli_query($conn, "SELECT id, nama_rute, total_biaya_rute FROM routes WHERE id='$id_route'");
+    $dt_rute = mysqli_fetch_assoc($q_rute);
+    $ongkos_kirim = $dt_rute ? $dt_rute['total_biaya_rute'] : 0;
+    $nama_rute = $dt_rute ? $dt_rute['nama_rute'] : 'Rute Manual';
+
+    // Cari rute pulang (return route)
+    $q_ret = mysqli_query($conn, "SELECT id FROM routes WHERE id_rute_induk='$id_route' AND tipe_rute='PULANG'");
+    $dt_ret = mysqli_fetch_assoc($q_ret);
+    $id_return_route = $dt_ret ? $dt_ret['id'] : 'NULL';
 
     mysqli_begin_transaction($conn);
 
     try {
-        // 1. Simpan Surat Jalan (Status DRAFT - Menunggu Pembayaran)
-        $query_sj = "INSERT INTO surat_jalan (no_sj, tgl_kirim, prioritas, id_driver, id_armada, penerima, kota_tujuan, alamat_tujuan, status) 
-                     VALUES ('$no_sj', '$tgl_kirim', '$prioritas', '$id_driver', '$id_armada', '$penerima', '$kota_tujuan', '$alamat_tujuan', 'DRAFT')";
+        // 1. Simpan Surat Jalan (Status ON TRIP - Driver langsung berangkat, invoice dibayar belakangan)
+        $query_sj = "INSERT INTO surat_jalan (no_sj, tgl_kirim, prioritas, id_driver, id_armada, penerima, kota_tujuan, alamat_tujuan, status, id_route, id_return_route) 
+                     VALUES ('$no_sj', '$tgl_kirim', '$prioritas', '$id_driver', '$id_armada', '$penerima', '$kota_tujuan', '$alamat_tujuan', 'ON TRIP', '$id_route', $id_return_route)";
         mysqli_query($conn, $query_sj);
         $id_sj_terbaru = mysqli_insert_id($conn);
 
@@ -59,10 +60,22 @@ if (isset($_POST['tgl_kirim'])) {
                 // Insert Surat Jalan Detail
                 mysqli_query($conn, "INSERT INTO surat_jalan_detail (id_sj, nama_barang, jumlah, satuan, keterangan) VALUES ('$id_sj_terbaru', '$item_nama', '$item_qty', '$item_sat', '$item_ket')");
 
-                // Hitung Harga Barang dari Database Stok
-                $q_harga = mysqli_query($conn, "SELECT harga FROM stok_barang WHERE nama_barang = '$item_nama' LIMIT 1");
-                $data_harga = mysqli_fetch_assoc($q_harga);
-                $harga_satuan = $data_harga ? (float)$data_harga['harga'] : 0;
+                // Hitung Harga Barang dan Cek Stok dari Database Stok
+                $q_stok = mysqli_query($conn, "SELECT harga, stok FROM stok_barang WHERE nama_barang = '$item_nama' LIMIT 1");
+                $data_stok = mysqli_fetch_assoc($q_stok);
+                
+                if (!$data_stok) {
+                    throw new Exception("Barang '$item_nama' tidak ditemukan di gudang.");
+                }
+                
+                if ($data_stok['stok'] < $item_qty) {
+                    throw new Exception("Stok '$item_nama' tidak mencukupi. Sisa stok: " . $data_stok['stok'] . ", diminta: " . $item_qty);
+                }
+
+                $harga_satuan = (float)$data_stok['harga'];
+                
+                // Kurangi Stok di Database
+                mysqli_query($conn, "UPDATE stok_barang SET stok = stok - $item_qty WHERE nama_barang = '$item_nama'");
                 
                 $subtotal_item = $harga_satuan * $item_qty;
                 
@@ -78,8 +91,7 @@ if (isset($_POST['tgl_kirim'])) {
             }
         }
 
-        // 3. Kalkulasi Ongkir dan PPN
-        $ongkos_kirim = $tarif_per_satuan * $total_qty;
+        // 3. Kalkulasi PPN
         $subtotal_sebelum_pajak = $total_harga_barang + $ongkos_kirim;
         $ppn = $subtotal_sebelum_pajak * 0.11;
         $total_tagihan_akhir = $subtotal_sebelum_pajak + $ppn;
@@ -99,23 +111,23 @@ if (isset($_POST['tgl_kirim'])) {
             mysqli_query($conn, "INSERT INTO invoice_detail (id_invoice, deskripsi, tarif, qty, subtotal) VALUES ('$id_invoice_terbaru', '{$item['deskripsi']}', '{$item['tarif']}', '{$item['qty']}', '{$item['subtotal']}')");
         }
         
-        // 5.b Ongkos Kirim
-        $desc_ongkir = "Biaya Pengiriman (Zona $zona_pengiriman)";
-        mysqli_query($conn, "INSERT INTO invoice_detail (id_invoice, deskripsi, tarif, qty, subtotal) VALUES ('$id_invoice_terbaru', '$desc_ongkir', '$tarif_per_satuan', '$total_qty', '$ongkos_kirim')");
+        // 5.b Ongkos Kirim (Flat rate per trip rute)
+        $desc_ongkir = "Biaya Pengiriman (Rute: $nama_rute)";
+        mysqli_query($conn, "INSERT INTO invoice_detail (id_invoice, deskripsi, tarif, qty, subtotal) VALUES ('$id_invoice_terbaru', '$desc_ongkir', '$ongkos_kirim', '1', '$ongkos_kirim')");
         
         // 5.c PPN
         $desc_ppn = "PPN 11%";
         mysqli_query($conn, "INSERT INTO invoice_detail (id_invoice, deskripsi, tarif, qty, subtotal) VALUES ('$id_invoice_terbaru', '$desc_ppn', '$ppn', '1', '$ppn')");
 
-        // 6. Update Status Driver & Armada menjadi BOOKED (Dipesan, belum berangkat)
-        mysqli_query($conn, "UPDATE driver SET status_kerja = 'BOOKED' WHERE id = '$id_driver'");
-        mysqli_query($conn, "UPDATE armada SET status = 'BOOKED' WHERE id = '$id_armada'");
+        // 6. Update Status Driver & Armada menjadi ON TRIP (Langsung berangkat, invoice menyusul)
+        mysqli_query($conn, "UPDATE driver SET status_kerja = 'ON TRIP' WHERE id = '$id_driver'");
+        mysqli_query($conn, "UPDATE armada SET status = 'ON TRIP' WHERE id = '$id_armada'");
 
         mysqli_commit($conn);
 
         echo "<script>
-                alert('Berhasil! Surat Jalan diterbitkan dengan status DRAFT. Invoice otomatis terbuat. Silakan lunasi Invoice terlebih dahulu agar driver bisa berangkat.');
-                window.location.href='invoice_pengiriman.php';
+                alert('Berhasil! Surat Jalan diterbitkan. Driver langsung ON TRIP. Invoice otomatis terbuat dan bisa dibayar kapanpun.');
+                window.location.href='status_pengiriman.php';
               </script>";
 
     } catch (Exception $e) {

@@ -18,13 +18,13 @@ $role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'STAF';
     <div class="sidebar-menu">
         <span class="menu-label">UTAMA</span>
         <ul class="list-unstyled components">
+            <?php if($role != 'DRIVER'): ?>
             <li class="<?php echo ($current_page == 'index.php') ? 'active' : ''; ?>">
                 <a href="index.php"><i class="fas fa-chart-line text-warning"></i> Dashboard Utama</a>
             </li>
-            
-            <?php if($role == 'DRIVER'): ?>
+            <?php else: ?>
             <li class="<?php echo ($current_page == 'dashboard_driver.php') ? 'active' : ''; ?>">
-                <a href="dashboard_driver.php"><i class="fas fa-route text-success"></i> Dashboard Driver</a>
+                <a href="dashboard_driver.php"><i class="fas fa-route text-success"></i> Dashboard Saya</a>
             </li>
             <?php endif; ?>
         </ul>
@@ -60,7 +60,10 @@ $role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'STAF';
         <span class="menu-label">ARSIP</span>
         <ul class="list-unstyled components">
             <li class="<?php echo ($current_page == 'manajemen_dokumen.php') ? 'active' : ''; ?>">
-                <a href="manajemen_dokumen.php"><i class="fas fa-archive"></i> Arsip & Riwayat</a>
+                <a href="manajemen_dokumen.php">
+                    <i class="fas fa-archive"></i> 
+                    <?php echo ($role == 'DRIVER') ? 'Riwayat Orderan' : 'Arsip & Riwayat'; ?>
+                </a>
             </li>
             <?php if($role != 'DRIVER'): ?>
             <li class="<?php echo ($current_page == 'manajemen_invoice.php') ? 'active' : ''; ?>">
@@ -81,6 +84,12 @@ $role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'STAF';
             </li>
             <li class="<?php echo ($current_page == 'kategori_barang.php') ? 'active' : ''; ?>">
                 <a href="kategori_barang.php"><i class="fas fa-tags text-primary"></i> Data Kategori</a>
+            </li>
+            <li class="<?php echo ($current_page == 'master_points.php') ? 'active' : ''; ?>">
+                <a href="master_points.php"><i class="fas fa-map-pin text-danger"></i> Master Checkpoint</a>
+            </li>
+            <li class="<?php echo ($current_page == 'manajemen_rute.php') ? 'active' : ''; ?>">
+                <a href="manajemen_rute.php"><i class="fas fa-route text-info"></i> Manajemen Rute</a>
             </li>
             <?php endif; ?>
             

@@ -155,12 +155,15 @@ while($s = mysqli_fetch_assoc($query_stok_barang)){
                             <input type="text" class="form-control form-control-sultan" placeholder="Contoh: Surabaya" name="kota_tujuan" required>
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label>Zona Pengiriman (Ongkir)</label>
-                            <select class="form-select form-control-sultan" name="zona_pengiriman" required>
-                                <option value="" disabled selected>-- Pilih Zona --</option>
-                                <option value="1">Zona 1: Jabodetabek (Rp 50.000 / Satuan)</option>
-                                <option value="2">Zona 2: P. Jawa - Luar Jabodetabek (Rp 150.000 / Satuan)</option>
-                                <option value="3">Zona 3: Luar Pulau Jawa (Rp 300.000 / Satuan)</option>
+                            <label>Rute Pengiriman</label>
+                            <select class="form-select form-control-sultan" name="id_route" required>
+                                <option value="" disabled selected>-- Pilih Rute --</option>
+                                <?php
+                                $q_rute = mysqli_query($conn, "SELECT * FROM routes WHERE tipe_rute='PERGI' AND is_active=1");
+                                while($r = mysqli_fetch_assoc($q_rute)) {
+                                    echo "<option value='".$r['id']."'>".$r['nama_rute']." (".number_format($r['total_jarak_km'],1)." km - Rp ".number_format($r['total_biaya_rute'],0,',','.').")</option>";
+                                }
+                                ?>
                             </select>
                         </div>
                         <div class="col-12 mb-3">

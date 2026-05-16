@@ -122,7 +122,7 @@ $role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'STAF';
                                     <?php if($row['status'] == 'UNPAID'): ?>
                                     <form action="proses_bayar_invoice.php" method="POST" class="d-inline">
                                         <input type="hidden" name="id_invoice" value="<?= $row['id']; ?>">
-                                        <button type="submit" name="konfirmasi_lunas" class="btn btn-lunas" onclick="return confirm('Konfirmasi bahwa Klien telah melunasi tagihan ini? (Driver akan otomatis diberangkatkan / ON TRIP)')">
+                                        <button type="submit" name="konfirmasi_lunas" class="btn btn-lunas" onclick="return confirm('Konfirmasi bahwa Klien telah melunasi tagihan ini?')">
                                             Konfirmasi Lunas
                                         </button>
                                     </form>

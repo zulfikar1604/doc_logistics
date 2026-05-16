@@ -122,8 +122,8 @@ if (!isset($_SESSION['log'])) {
                                          JOIN driver d ON sj.id_driver = d.id 
                                          JOIN login l ON d.id_login = l.id 
                                          JOIN armada a ON sj.id_armada = a.id
-                                         WHERE sj.status IN ('ON TRIP', 'DRAFT', 'DELIVERED')
-                                         ORDER BY FIELD(sj.status, 'ON TRIP', 'DRAFT', 'DELIVERED'), sj.tgl_kirim DESC");
+                                         WHERE sj.status IN ('ON TRIP', 'DRAFT', 'DELIVERED', 'RETURNING', 'FINISHED')
+                                         ORDER BY FIELD(sj.status, 'ON TRIP', 'RETURNING', 'DRAFT', 'DELIVERED', 'FINISHED'), sj.tgl_kirim DESC");
             
             if(mysqli_num_rows($q_sj) > 0) {
                 while($row = mysqli_fetch_assoc($q_sj)) {
@@ -216,7 +216,37 @@ if (!isset($_SESSION['log'])) {
                     <span class="status-badge bg-delivered"><i class="fas fa-check-circle me-1"></i> Berhasil Diterima</span>
                 </div>
                 <div class="card-body p-4 text-center">
-                    <p class="mb-0 text-muted">Pengiriman ini telah selesai dan diterima oleh <strong class="text-dark"><?= $row['penerima']; ?></strong>.</p>
+                    <p class="mb-0 text-muted">Pengiriman ini telah selesai dan diterima oleh <strong class="text-dark"><?= $row['penerima']; ?></strong>. Armada sedang menunggu rute pulang.</p>
+                </div>
+            </div>
+            <?php 
+                    } elseif ($st == 'RETURNING') { 
+            ?>
+            <div class="tracking-card">
+                <div class="card-header-sultan d-flex justify-content-between align-items-center flex-wrap">
+                    <div class="mb-2 mb-md-0">
+                        <span class="info-label">No. Surat Jalan</span>
+                        <span class="info-value"><?= $row['no_sj']; ?></span>
+                    </div>
+                    <span class="status-badge" style="background: #fef3c7; color: #92400e;"><i class="fas fa-truck me-1" style="transform: scaleX(-1);"></i> Rute Pulang</span>
+                </div>
+                <div class="card-body p-4 text-center">
+                    <p class="mb-0 text-muted">Armada <strong class="text-dark"><?= $row['nopol']; ?></strong> sedang dalam perjalanan pulang ke markas. Driver: <strong><?= $row['nama_driver']; ?></strong></p>
+                </div>
+            </div>
+            <?php 
+                    } elseif ($st == 'FINISHED') { 
+            ?>
+            <div class="tracking-card" style="opacity: 0.7;">
+                <div class="card-header-sultan d-flex justify-content-between align-items-center flex-wrap">
+                    <div class="mb-2 mb-md-0">
+                        <span class="info-label">No. Surat Jalan</span>
+                        <span class="info-value"><?= $row['no_sj']; ?></span>
+                    </div>
+                    <span class="status-badge bg-delivered"><i class="fas fa-flag-checkered me-1"></i> Selesai Penuh</span>
+                </div>
+                <div class="card-body p-4 text-center">
+                    <p class="mb-0 text-muted">Misi pengiriman ke <strong class="text-dark"><?= $row['penerima']; ?></strong> telah selesai sepenuhnya. Armada & driver kembali stand-by.</p>
                 </div>
             </div>
             <?php 

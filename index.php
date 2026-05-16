@@ -164,8 +164,16 @@ $unpaid_invoice = mysqli_num_rows(mysqli_query($conn, "SELECT id FROM invoice WH
                                         </td>
                                         <td style="font-size: 0.8rem;"><?= $row['kota_tujuan']; ?></td>
                                         <td>
-                                            <span class="badge badge-luxe <?= ($row['status'] == 'ON TRIP') ? 'bg-primary bg-opacity-10 text-primary' : 'bg-success bg-opacity-10 text-success' ?>">
-                                                <?= $row['status']; ?>
+                                            <?php 
+                                                $st = $row['status'];
+                                                if ($st == 'ON TRIP') { $bc = 'bg-primary bg-opacity-10 text-primary'; }
+                                                elseif ($st == 'RETURNING') { $bc = 'bg-warning bg-opacity-25 text-dark'; }
+                                                elseif ($st == 'DELIVERED') { $bc = 'bg-success bg-opacity-10 text-success'; }
+                                                elseif ($st == 'FINISHED') { $bc = 'bg-success bg-opacity-10 text-success'; }
+                                                else { $bc = 'bg-secondary bg-opacity-10 text-secondary'; }
+                                            ?>
+                                            <span class="badge badge-luxe <?= $bc ?>">
+                                                <?= $st ?: 'N/A'; ?>
                                             </span>
                                         </td>
                                     </tr>
