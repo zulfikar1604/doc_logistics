@@ -1,5 +1,7 @@
 <?php
 session_start();
+require 'koneksi.php';
+
 // PERBAIKAN FATAL: Keamanan Session disamakan
 if (!isset($_SESSION['log'])) {
     header('location:login.php');
@@ -114,13 +116,37 @@ if (!isset($_SESSION['log'])) {
                 </button>
             </div>
 
+            <?php
+            $q_sj = mysqli_query($conn, "SELECT sj.*, l.nama_lengkap as nama_driver, d.no_telepon as telp_driver, a.nopol, a.tipe
+                                         FROM surat_jalan sj
+                                         JOIN driver d ON sj.id_driver = d.id
+                                         JOIN login l ON d.id_login = l.id
+                                         JOIN armada a ON sj.id_armada = a.id
+                                         WHERE sj.status IN ('ON TRIP', 'DRAFT', 'DELIVERED')
+                                         ORDER BY FIELD(sj.status, 'ON TRIP', 'DRAFT', 'DELIVERED'), sj.tgl_kirim DESC");
+
+            if(mysqli_num_rows($q_sj) > 0) {
+                while($row = mysqli_fetch_assoc($q_sj)) {
+                    $st = $row['status'];
+                    $id_sj = $row['id'];
+
+                    if($st == 'ON TRIP' || $st == 'DRAFT') {
+                        // Ambil checkpoint terakhir jika ada
+                        $q_cp = mysqli_query($conn, "SELECT * FROM sj_checkpoints WHERE id_sj='$id_sj' ORDER BY waktu DESC LIMIT 1");
+                        $latest_cp = mysqli_fetch_assoc($q_cp);
+                        $cp_text = $latest_cp ? "In Transit (" . $latest_cp['lokasi'] . ")" : "Menunggu Keberangkatan";
+            ?>
             <div class="tracking-card">
                 <div class="card-header-sultan d-flex justify-content-between align-items-center flex-wrap">
                     <div class="mb-2 mb-md-0">
                         <span class="info-label">No. Surat Jalan</span>
-                        <span class="info-value text-primary">#SJ-20260331-001</span>
+                        <span class="info-value text-primary"><?= $row['no_sj']; ?></span>
                     </div>
-                    <span class="status-badge bg-on-trip"><i class="fas fa-truck me-1"></i> Sedang Dikirim</span>
+                    <?php if($st == 'ON TRIP'): ?>
+                        <span class="status-badge bg-on-trip"><i class="fas fa-truck me-1"></i> Sedang Dikirim</span>
+                    <?php else: ?>
+                        <span class="status-badge bg-secondary text-white"><i class="fas fa-file-alt me-1"></i> Draft / Persiapan</span>
+                    <?php endif; ?>
                 </div>
                 
                 <div class="card-body p-4">
@@ -128,12 +154,12 @@ if (!isset($_SESSION['log'])) {
                         <div class="timeline-step completed">
                             <div class="inner-circle"></div>
                             <p class="small fw-bold mb-0">Manifest</p>
-                            <p class="text-muted" style="font-size: 0.7rem;">31 Mar, 08:00</p>
+                            <p class="text-muted" style="font-size: 0.7rem;"><?= date('d M, H:i', strtotime($row['tgl_kirim'])); ?></p>
                         </div>
-                        <div class="timeline-step active">
+                        <div class="timeline-step <?= ($st == 'ON TRIP') ? 'active' : ''; ?>">
                             <div class="inner-circle"></div>
                             <p class="small fw-bold mb-0">On Trip</p>
-                            <p class="text-muted" style="font-size: 0.7rem;">In Transit (Cirebon)</p>
+                            <p class="text-muted" style="font-size: 0.7rem;"><?= ($st == 'ON TRIP') ? $cp_text : 'Pending'; ?></p>
                         </div>
                         <div class="timeline-step">
                             <div class="inner-circle"></div>
@@ -152,45 +178,54 @@ if (!isset($_SESSION['log'])) {
                     <div class="row text-center">
                         <div class="col-6 col-md-3 border-end mb-3 mb-md-0">
                             <span class="info-label">Driver</span>
-                            <span class="info-value">Ahmad Junaidi</span>
+                            <span class="info-value"><?= $row['nama_driver']; ?></span>
                         </div>
                         <div class="col-6 col-md-3 border-end mb-3 mb-md-0">
                             <span class="info-label">Kendaraan</span>
-                            <span class="info-value">B 1234 GLO (Hino)</span>
+                            <span class="info-value"><?= $row['nopol']; ?> (<?= $row['tipe']; ?>)</span>
                         </div>
                         <div class="col-6 col-md-3 border-end">
                             <span class="info-label">Tujuan</span>
-                            <span class="info-value">Semarang, Jateng</span>
+                            <span class="info-value"><?= $row['kota_tujuan']; ?></span>
                         </div>
                         <div class="col-6 col-md-3">
                             <span class="info-label">Estimasi Tiba</span>
-                            <span class="info-value text-success">Hari ini, 21:00</span>
+                            <span class="info-value text-success">-</span>
                         </div>
                     </div>
                 </div>
                 
                 <div class="card-footer bg-white border-top-0 pb-4 px-4 d-flex justify-content-end">
-                    <button class="btn btn-sm btn-outline-primary me-2 fw-medium" style="border-radius: 8px;">
+                    <a href="live_tracking.php?order=<?= $row['id']; ?>" class="btn btn-sm btn-outline-primary me-2 fw-medium" style="border-radius: 8px;">
                         <i class="fas fa-map-marker-alt me-1"></i> Lihat Map
-                    </button>
-                    <button class="btn btn-sm btn-light border fw-medium" style="border-radius: 8px;">
+                    </a>
+                    <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $row['telp_driver']); ?>" target="_blank" class="btn btn-sm btn-light border fw-medium" style="border-radius: 8px;">
                         <i class="fas fa-phone-alt me-1"></i> Hubungi Driver
-                    </button>
+                    </a>
                 </div>
             </div>
-
+            <?php
+                    } elseif ($st == 'DELIVERED') {
+            ?>
             <div class="tracking-card" style="opacity: 0.85;">
                 <div class="card-header-sultan d-flex justify-content-between align-items-center flex-wrap">
                     <div class="mb-2 mb-md-0">
                         <span class="info-label">No. Surat Jalan</span>
-                        <span class="info-value">#SJ-20260330-088</span>
+                        <span class="info-value"><?= $row['no_sj']; ?></span>
                     </div>
                     <span class="status-badge bg-delivered"><i class="fas fa-check-circle me-1"></i> Berhasil Diterima</span>
                 </div>
                 <div class="card-body p-4 text-center">
-                    <p class="mb-0 text-muted">Pengiriman ini telah selesai dan diterima oleh <strong class="text-dark">PT. Maju Jaya</strong> pada 30 Maret 2026.</p>
+                    <p class="mb-0 text-muted">Pengiriman ini telah selesai dan diterima oleh <strong class="text-dark"><?= $row['penerima']; ?></strong>.</p>
                 </div>
             </div>
+            <?php
+                    }
+                }
+            } else {
+                echo '<div class="alert alert-info border-0 shadow-sm" style="border-radius: 15px;"><i class="fas fa-info-circle me-2"></i> Belum ada data pengiriman.</div>';
+            }
+            ?>
 
         </div>
     </div>
