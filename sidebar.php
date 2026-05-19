@@ -19,8 +19,8 @@ $role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'STAF';
         <span class="menu-label">UTAMA</span>
         <ul class="list-unstyled components">
             <?php if($role != 'DRIVER'): ?>
-            <li class="<?php echo ($current_page == 'index.php') ? 'active' : ''; ?>">
-                <a href="index.php"><i class="fas fa-chart-line text-warning"></i> Dashboard Utama</a>
+            <li class="<?php echo ($current_page == 'dashboard_utama.php') ? 'active' : ''; ?>">
+                <a href="dashboard_utama.php"><i class="fas fa-chart-line text-warning"></i> Dashboard Utama</a>
             </li>
             <?php else: ?>
             <li class="<?php echo ($current_page == 'dashboard_driver.php') ? 'active' : ''; ?>">

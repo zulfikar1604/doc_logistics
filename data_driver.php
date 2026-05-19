@@ -4,7 +4,7 @@ require 'koneksi.php'; // Wajib panggil koneksi database
 
 // Cek keamanan session
 if (!isset($_SESSION['log'])) {
-    header('location:login.php');
+    header('location:index.php');
     exit();
 }
 

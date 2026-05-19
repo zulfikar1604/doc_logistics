@@ -2,7 +2,7 @@
 session_start();
 require 'koneksi.php';
 
-if (!isset($_SESSION['log'])) { header('location:login.php'); exit(); }
+if (!isset($_SESSION['log'])) { header('location:index.php'); exit(); }
 
 $id_tracking = isset($_GET['order']) ? $_GET['order'] : '';
 

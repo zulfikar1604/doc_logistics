@@ -3,7 +3,7 @@ session_start();
 require 'koneksi.php'; // WAJIB ada koneksi ke database
 
 if (!isset($_SESSION['log'])) {
-    header('location:login.php');
+    header('location:index.php');
     exit();
 }
 

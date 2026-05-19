@@ -18,6 +18,6 @@ if (ini_get("session.use_cookies")) {
 }
 
 // 5. Arahkan kembali ke halaman login
-header('location:login.php');
+header('location:index.php');
 exit();
 ?>

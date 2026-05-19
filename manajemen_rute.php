@@ -2,7 +2,7 @@
 session_start();
 require 'koneksi.php';
 
-if (!isset($_SESSION['log'])) { header('location:login.php'); exit(); }
+if (!isset($_SESSION['log'])) { header('location:index.php'); exit(); }
 
 // Ambil semua rute aktif
 $q_routes = mysqli_query($conn, "SELECT r.*, (SELECT COUNT(*) FROM route_details WHERE id_route=r.id) as jml_checkpoint FROM routes r WHERE r.is_active=1 ORDER BY r.tipe_rute ASC, r.nama_rute ASC");

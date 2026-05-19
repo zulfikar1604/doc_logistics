@@ -4,7 +4,7 @@ require 'koneksi.php';
 
 // Pastikan user sudah login
 if (!isset($_SESSION['log'])) {
-    header('location:login.php');
+    header('location:index.php');
     exit();
 }
 
