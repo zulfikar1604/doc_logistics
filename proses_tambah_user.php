@@ -25,9 +25,10 @@ if (isset($_POST['simpan_user'])) {
         echo "<script>alert('Gagal! Email atau Username sudah digunakan oleh user lain.'); window.location.href='user_management.php';</script>";
     } else {
         // 3. Masukkan data ke tabel login
-        // (Sesuai permintaan awal, password tidak di-hash agar sederhana)
+        // Password di-hash untuk keamanan
+        $hashed_pw = password_hash($password, PASSWORD_DEFAULT);
         $query_insert = "INSERT INTO login (nama_lengkap, username, email, password, role) 
-                         VALUES ('$nama_lengkap', '$username', '$email', '$password', '$role')";
+                         VALUES ('$nama_lengkap', '$username', '$email', '$hashed_pw', '$role')";
         
         $eksekusi = mysqli_query($conn, $query_insert);
 

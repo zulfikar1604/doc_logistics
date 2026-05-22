@@ -5,34 +5,48 @@ require 'koneksi.php';
 if (isset($_POST['login'])) {
     // Sanitasi input agar lebih aman
     $email = mysqli_real_escape_string($conn, $_POST['email']);
-    $password = mysqli_real_escape_string($conn, $_POST['password']);
+    $password_input = $_POST['password'];
 
-    $query = "SELECT * FROM login WHERE email='$email' AND password='$password'";
+    // Ambil user berdasarkan email saja (password dicek terpisah)
+    $query = "SELECT * FROM login WHERE email='$email'";
     $cek = mysqli_query($conn, $query);
 
     if (mysqli_num_rows($cek) > 0) {
         $data = mysqli_fetch_assoc($cek);
         
-        // 1. Bersihkan dan seragamkan role (Hapus spasi gaib & jadikan Huruf Besar)
-        $role_bersih = strtoupper(trim($data['role']));
-        
-        // 2. Simpan ke session pakai role yang sudah dibersihkan
-        $_SESSION['log'] = 'True';
-        $_SESSION['role'] = $role_bersih;
-        $_SESSION['email'] = $data['email'];
-        $_SESSION['nama_lengkap'] = $data['nama_lengkap']; 
-        
-        // 3. PEMISAHAN REDIRECT BERDASARKAN ROLE
-        if ($role_bersih == 'DRIVER') {
-            // Jika yang login adalah driver, lempar ke dashboard_driver.php
-            header('location:dashboard_driver.php');
-        } else {
-            // Jika selain driver (Manager/Staf/Admin), lempar ke dashboard_utama.php
-            header('location:dashboard_utama.php');
+        // Cek password: support hash (password_verify) DAN plain text (backward compat)
+        $password_valid = false;
+        if (password_verify($password_input, $data['password'])) {
+            // Password sudah di-hash → cocok
+            $password_valid = true;
+        } elseif ($password_input === $data['password']) {
+            // Password masih plain text → cocok, lalu auto-upgrade ke hash
+            $hashed = password_hash($password_input, PASSWORD_DEFAULT);
+            mysqli_query($conn, "UPDATE login SET password = '$hashed' WHERE id = '{$data['id']}'");
+            $password_valid = true;
         }
         
-        exit(); // WAJIB ada exit() setelah header location agar script berhenti
-
+        if ($password_valid) {
+            // 1. Bersihkan dan seragamkan role
+            $role_bersih = strtoupper(trim($data['role']));
+            
+            // 2. Simpan ke session
+            $_SESSION['log'] = 'True';
+            $_SESSION['id_login'] = $data['id'];
+            $_SESSION['role'] = $role_bersih;
+            $_SESSION['email'] = $data['email'];
+            $_SESSION['nama_lengkap'] = $data['nama_lengkap']; 
+            
+            // 3. Redirect berdasarkan role
+            if ($role_bersih == 'DRIVER') {
+                header('location:dashboard_driver.php');
+            } else {
+                header('location:dashboard_utama.php');
+            }
+            exit();
+        } else {
+            $error = true;
+        }
     } else {
         $error = true;
     }

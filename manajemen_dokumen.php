@@ -43,7 +43,7 @@ if ($role == 'DRIVER') {
     
     <style>
         :root {
-            /* [CLEANED by sidebar-global.css] */--primary-blue: #1a367e;
+            --primary-blue: #1a367e;
             --accent-yellow: #ffcc00;
             --bg-light: #f4f7f6;
         }
@@ -51,25 +51,14 @@ if ($role == 'DRIVER') {
         body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); overflow-x: hidden; }
 
         /* --- CSS WAJIB LAYOUT --- */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
         
         @media (max-width: 768px) {
-            /* [CLEANED by sidebar-global.css] */
             #sidebar.show { margin-left: 0; }
-            /* [CLEANED by sidebar-global.css] */
-            /* [CLEANED by sidebar-global.css] */
         }
 
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
         #sidebar ul li a:hover, #sidebar ul li.active > a { color: #fff; background: rgba(255,255,255,0.1); border-left: 4px solid var(--accent-yellow); }
         #sidebar ul li a i { width: 25px; text-align: center; }
         .submenu a { padding-left: 50px !important; font-size: 0.8rem !important; }
-        /* [CLEANED by sidebar-global.css] */
 
         /* --- DESAIN CARD & FILTER SULTAN --- */
         .card-filter { border: none; border-radius: 20px; background: #ffffff; box-shadow: 0 10px 30px rgba(0,0,0,0.03); margin-bottom: 30px; padding: 20px; border: 1px solid rgba(0,0,0,0.05); }
@@ -135,10 +124,15 @@ if ($role == 'DRIVER') {
                         <i class="fas fa-archive"></i> Arsip Surat Jalan
                     </div>
                     
-                    <?php if($role != 'DRIVER'): ?>
-                    <button onclick="window.print()" class="btn btn-light border text-primary btn-sm fw-bold mt-2 mt-md-0 shadow-sm" style="border-radius: 8px; padding: 8px 16px;">
-                        <i class="fas fa-file-excel me-2"></i> Export Laporan
-                    </button>
+                    <?php if($role != 'DRIVER'): 
+                        $qparams = [];
+                        if (!empty($_GET['tgl_mulai'])) $qparams['tgl_mulai'] = $_GET['tgl_mulai'];
+                        if (!empty($_GET['tgl_selesai'])) $qparams['tgl_selesai'] = $_GET['tgl_selesai'];
+                        $export_url = "cetak_laporan.php" . (!empty($qparams) ? "?" . http_build_query($qparams) : "");
+                    ?>
+                    <a href="<?= $export_url ?>" target="_blank" class="btn btn-light border text-primary btn-sm fw-bold mt-2 mt-md-0 shadow-sm" style="border-radius: 8px; padding: 8px 16px; text-decoration: none;">
+                        <i class="fas fa-print me-2"></i> Cetak / Ekspor Laporan
+                    </a>
                     <?php endif; ?>
                 </div>
                 
@@ -192,13 +186,18 @@ if ($role == 'DRIVER') {
                                 <td><span class="badge-sultan <?= $badge_class ?>"><?= $status ?: 'N/A' ?></span></td>
                                 
                                 <?php if($role != 'DRIVER'): ?>
-                                <td class="text-center">
-                                    <a href="cetak_surat_jalan.php?id=<?= $row['id'] ?>" target="_blank" class="btn btn-sm btn-light border text-primary shadow-sm me-1" title="Detail Dokumen" style="border-radius: 8px;">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="cetak_surat_jalan.php?id=<?= $row['id'] ?>&download=1" target="_blank" class="btn btn-sm btn-light border text-secondary shadow-sm" title="Download PDF" style="border-radius: 8px;">
-                                        <i class="fas fa-print"></i>
-                                    </a>
+                                <td>
+                                    <div class="d-flex justify-content-center gap-1">
+                                        <a href="cetak_surat_jalan.php?id=<?= $row['id'] ?>" target="_blank" class="btn btn-sm btn-outline-primary shadow-sm" title="Lihat Surat Jalan (DO)" style="border-radius: 6px;">
+                                            <i class="fas fa-file-alt"></i>
+                                        </a>
+                                        <a href="cetak_label_resi.php?id=<?= $row['id'] ?>" target="_blank" class="btn btn-sm btn-dark shadow-sm" title="Cetak Label QR" style="border-radius: 6px; padding: 0.25rem 0.5rem; font-size: 0.75rem; font-weight: 600;">
+                                            <i class="fas fa-qrcode"></i> Label
+                                        </a>
+                                        <a href="cetak_surat_jalan.php?id=<?= $row['id'] ?>&download=1" target="_blank" class="btn btn-sm btn-outline-secondary shadow-sm" title="Download PDF" style="border-radius: 6px;">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                    </div>
                                 </td>
                                 <?php endif; ?>
                             </tr>

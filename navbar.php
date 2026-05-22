@@ -19,7 +19,7 @@ if (!empty($nav_email) && isset($conn)) {
 ?>
 <nav class="top-navbar d-flex justify-content-between align-items-center">
     <div class="d-flex align-items-center">
-        <button type="button" class="btn btn-light d-md-none me-3" id="sidebarToggle">
+        <button type="button" class="btn btn-light me-3" id="sidebarToggle" style="border: 1px solid #e2e8f0;">
             <i class="fas fa-bars"></i>
         </button>
         

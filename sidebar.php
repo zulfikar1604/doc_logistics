@@ -17,9 +17,15 @@ $nav_nama = isset($_SESSION['nama_lengkap']) && !empty($_SESSION['nama_lengkap']
 <nav id="sidebar">
 
     <!-- HEADER BRANDING -->
-    <div class="sidebar-header">
-        <div class="brand-name">PT Elektronik Global</div>
-        <div class="brand-sub">Global Logistics</div>
+    <div class="sidebar-header d-flex justify-content-between align-items-center">
+        <div>
+            <div class="brand-name">PT Elektronik Global</div>
+            <div class="brand-sub">Global Logistics</div>
+        </div>
+        <!-- Tombol Tutup (Hanya Tampil di Mobile) -->
+        <button type="button" class="btn btn-sm d-md-none text-white border-0" id="sidebarCloseBtn" style="background: rgba(255,255,255,0.15); border-radius: 6px;">
+            <i class="fas fa-times"></i>
+        </button>
     </div>
 
     <!-- SCROLLABLE MENU -->
@@ -149,13 +155,58 @@ $nav_nama = isset($_SESSION['nama_lengkap']) && !empty($_SESSION['nama_lengkap']
 
     </div><!-- end sidebar-menu -->
 
-    <!-- FOOTER: USER INFO + LOGOUT -->
+    <!-- FOOTER SIDEBAR -->
     <div class="sidebar-footer">
-        <div class="user-role"><?php echo $role; ?></div>
-        <div class="user-name"><?php echo htmlspecialchars($nav_nama); ?></div>
-        <a href="keluar.php" class="btn-logout">
-            <i class="fas fa-sign-out-alt"></i> Keluar Sistem
+        <div class="user-role"><?= htmlspecialchars($role) ?></div>
+        <div class="user-name"><?= htmlspecialchars($nav_nama) ?></div>
+        <a href="keluar.php" class="btn-logout" onclick="return confirm('Apakah Anda yakin ingin keluar dari sistem?');">
+            <i class="fas fa-sign-out-alt"></i> Logout System
         </a>
     </div>
-
 </nav>
+
+<!-- SIDEBAR OVERLAY (BACKDROP UNTUK MOBILE) -->
+<div id="sidebarOverlay" class="d-md-none"></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var sidebar = document.getElementById("sidebar");
+    var overlay = document.getElementById("sidebarOverlay");
+    var closeBtn = document.getElementById("sidebarCloseBtn");
+    var toggleBtn = document.getElementById("sidebarToggle");
+    var mainContent = document.getElementById("main-content");
+
+    // Fix for multiple pages trying to bind click to toggleBtn
+    if (toggleBtn) {
+        // Hapus event listener lama dengan clone (bila ada conflict)
+        var newToggleBtn = toggleBtn.cloneNode(true);
+        toggleBtn.parentNode.replaceChild(newToggleBtn, toggleBtn);
+        
+        newToggleBtn.addEventListener("click", function() {
+            if (window.innerWidth <= 768) {
+                // Mode HP/Tablet: Munculkan Sidebar + Overlay
+                sidebar.classList.toggle("show");
+                overlay.classList.toggle("show");
+            } else {
+                // Mode Desktop/Laptop: Sembunyikan Sidebar, Penuhkan Konten
+                sidebar.classList.toggle("collapsed");
+                if (mainContent) mainContent.classList.toggle("expanded");
+            }
+        });
+    }
+
+    if (closeBtn) {
+        closeBtn.addEventListener("click", function() {
+            sidebar.classList.remove("show");
+            overlay.classList.remove("show");
+        });
+    }
+
+    if (overlay) {
+        overlay.addEventListener("click", function() {
+            sidebar.classList.remove("show");
+            overlay.classList.remove("show");
+        });
+    }
+});
+</script>

@@ -22,10 +22,10 @@ if (isset($_POST['konfirmasi_lunas'])) {
         }
     }
     
-    echo "<script>alert('Invoice berhasil dikonfirmasi LUNAS!'); window.location.href='invoice_pengiriman.php';</script>";
+    echo "<script>alert('Invoice berhasil dikonfirmasi LUNAS!'); window.location.href='manajemen_invoice.php';</script>";
     exit();
 } else {
-    header('location:invoice_pengiriman.php');
+    header('location:manajemen_invoice.php');
     exit();
 }
 ?>

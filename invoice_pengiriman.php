@@ -22,7 +22,7 @@ $role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'STAF';
     
     <style>
         :root {
-            /* [CLEANED by sidebar-global.css] */--primary-blue: #1a367e;
+            --primary-blue: #1a367e;
             --accent-yellow: #ffcc00;
             --bg-light: #f8fafc;
         }
@@ -30,17 +30,9 @@ $role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'STAF';
         body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); overflow-x: hidden; }
 
         /* --- CSS WAJIB LAYOUT --- */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
         
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
         #sidebar ul li a:hover, #sidebar ul li.active > a { color: #fff; background: rgba(255,255,255,0.1); border-left: 4px solid var(--accent-yellow); }
         #sidebar ul li a i { width: 25px; text-align: center; }
-        /* [CLEANED by sidebar-global.css] */
 
         .table-container { 
             background: white; border-radius: 16px; padding: 25px; 

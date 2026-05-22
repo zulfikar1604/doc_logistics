@@ -11,7 +11,7 @@ if (!isset($_SESSION['log'])) {
 if (isset($_POST['nama_klien'])) {
     // 1. Tangkap Data Header Invoice
     // Nomor invoice dibuat otomatis berdasarkan tanggal dan random number
-    $no_invoice   = "#INV-" . date('Ymd') . "-" . rand(100, 999);
+    $no_invoice   = "#INV-" . date('Ymd') . "-" . strtoupper(substr(uniqid(), -5));
     $tgl_invoice  = date('Y-m-d');
     $nama_klien   = mysqli_real_escape_string($conn, $_POST['nama_klien']);
     $alamat_klien = mysqli_real_escape_string($conn, $_POST['alamat_klien']);
@@ -73,8 +73,9 @@ if (isset($_POST['nama_klien'])) {
 
     } catch (Exception $e) {
         mysqli_rollback($conn);
+        $err_msg = addslashes($e->getMessage());
         echo "<script>
-                alert('Gagal menyimpan invoice: " . $e->getMessage() . "');
+                alert('Gagal menyimpan invoice: $err_msg');
                 window.location.href='invoice_pengiriman.php';
               </script>";
     }

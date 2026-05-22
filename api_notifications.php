@@ -17,14 +17,6 @@ $role = $_SESSION['role'] ?? '';
 // Tutup sesi untuk penulisan agar polling AJAX tidak memblokir navigasi/request PHP lain!
 session_write_close();
 
-// Let's fallback to 0 if not found, but it should be available.
-
-// Let's fetch login ID securely if it's not explicitly in session, maybe we can use email.
-$email = $_SESSION['email'] ?? '';
-$q_user = mysqli_query($conn, "SELECT id FROM login WHERE email = '$email'");
-if ($row = mysqli_fetch_assoc($q_user)) {
-    $id_login = $row['id'];
-}
 
 if ($action == 'fetch') {
     // Fetch unread notifications for this user or global (id_login = 0 or NULL)

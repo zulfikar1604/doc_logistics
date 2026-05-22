@@ -28,18 +28,10 @@ $query_tracking = mysqli_query($conn, "
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { /* [CLEANED by sidebar-global.css] */--primary-blue: #1a367e; --accent-yellow: #ffcc00; --bg-light: #f4f7f6; }
+        :root { --primary-blue: #1a367e; --accent-yellow: #ffcc00; --bg-light: #f4f7f6; }
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg-light); overflow-x: hidden; }
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
         #sidebar ul li a:hover, #sidebar ul li.active > a { color: #fff; background: rgba(255,255,255,0.1); border-left: 4px solid var(--accent-yellow); }
         #sidebar ul li a i { width: 25px; text-align: center; }
-        /* [CLEANED by sidebar-global.css] */
         .card-sultan { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.05); overflow: hidden;}
         .header-sultan { background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 20px 25px; }
         .status-pill { border-radius: 999px; padding: 6px 12px; font-weight: 800; font-size: 10px; }

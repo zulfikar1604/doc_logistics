@@ -33,7 +33,11 @@ if (isset($_POST['update_foto']) && !empty($email_user)) {
         if(!empty($data_lama['foto']) && file_exists("assets/img/".$data_lama['foto'])){
             unlink("assets/img/".$data_lama['foto']);
         }
-        move_uploaded_file($tmp_name, 'assets/img/' . $nama_file_baru);
+        $dir = 'assets/img/';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
+        move_uploaded_file($tmp_name, $dir . $nama_file_baru);
         mysqli_query($conn, "UPDATE login SET foto = '$nama_file_baru' WHERE email = '$email_user'");
         $pesan_update = "<div class='alert alert-success rounded-4 small'>Foto profil berhasil diperbarui!</div>";
     }
@@ -87,7 +91,7 @@ if ($role == 'DRIVER' && !empty($user['id'])) {
     <style>
         /* --- CSS MASTER (Sesuai Permintaan) --- */
         :root {
-            /* [CLEANED by sidebar-global.css] */--primary-blue: #1a367e;
+            --primary-blue: #1a367e;
             --accent-yellow: #ffcc00;
             --bg-light: #f8fafc;
         }
@@ -95,24 +99,13 @@ if ($role == 'DRIVER' && !empty($user['id'])) {
         body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); overflow-x: hidden; }
 
         /* --- CSS WAJIB LAYOUT --- */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
         
         @media (max-width: 768px) {
-            /* [CLEANED by sidebar-global.css] */
             #sidebar.show { margin-left: 0; }
-            /* [CLEANED by sidebar-global.css] */
-            /* [CLEANED by sidebar-global.css] */
         }
 
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
         #sidebar ul li a:hover, #sidebar ul li.active > a { color: #fff; background: rgba(255,255,255,0.1); border-left: 4px solid var(--accent-yellow); }
         #sidebar ul li a i { width: 25px; text-align: center; }
-        /* [CLEANED by sidebar-global.css] */
 
         /* --- CSS KHUSUS PROFIL --- */
         .card-sultan { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.05); }

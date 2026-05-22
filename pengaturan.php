@@ -17,7 +17,8 @@ if (isset($_POST['ganti_password']) && !empty($email_user)) {
     $konfirmasi = $_POST['konfirmasi_password'];
 
     if ($password_baru == $konfirmasi) {
-        $update = mysqli_query($conn, "UPDATE login SET password = '$password_baru' WHERE email = '$email_user'");
+        $hashed = password_hash($password_baru, PASSWORD_DEFAULT);
+        $update = mysqli_query($conn, "UPDATE login SET password = '$hashed' WHERE email = '$email_user'");
         if ($update) {
             $pesan = "<div class='alert alert-success rounded-4 fw-bold'><i class='fas fa-check-circle me-2'></i> Password berhasil diperbarui!</div>";
         } else {
@@ -56,31 +57,20 @@ if (!$user) {
     <style>
         /* --- CSS WAJIB LAYOUT (MASTER) --- */
         :root {
-            /* [CLEANED by sidebar-global.css] */--primary-blue: #1a367e;
+            --primary-blue: #1a367e;
             --accent-yellow: #ffcc00;
             --bg-light: #f8fafc;
         }
 
         body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); overflow-x: hidden; }
 
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
         
         @media (max-width: 768px) {
-            /* [CLEANED by sidebar-global.css] */
             #sidebar.show { margin-left: 0; }
-            /* [CLEANED by sidebar-global.css] */
-            /* [CLEANED by sidebar-global.css] */
         }
 
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
         #sidebar ul li a:hover, #sidebar ul li.active > a { color: #fff; background: rgba(255,255,255,0.1); border-left: 4px solid var(--accent-yellow); }
         #sidebar ul li a i { width: 25px; text-align: center; }
-        /* [CLEANED by sidebar-global.css] */
 
         /* --- CSS KHUSUS PENGATURAN --- */
         .card-sultan { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.05); }

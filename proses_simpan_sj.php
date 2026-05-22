@@ -110,7 +110,7 @@ if (isset($_POST['tgl_kirim'])) {
         $total_tagihan_akhir = $subtotal_sebelum_pajak + $ppn;
 
         // 4. Generate Invoice Baru
-        $no_invoice = '#INV-'.date('Ymd').'-'.rand(100,999);
+        $no_invoice = '#INV-'.date('Ymd').'-'.strtoupper(substr(uniqid(), -5));
         $tgl_invoice = date('Y-m-d');
         
         $query_inv = "INSERT INTO invoice (id_sj, no_invoice, tgl_invoice, nama_klien, alamat_klien, total_tagihan, status) 
@@ -168,8 +168,9 @@ if (isset($_POST['tgl_kirim'])) {
 
     } catch (Exception $e) {
         mysqli_rollback($conn);
+        $err_msg = addslashes($e->getMessage());
         echo "<script>
-                alert('Gagal menyimpan data: " . $e->getMessage() . "');
+                alert('Gagal menyimpan data: $err_msg');
                 window.location.href='buat_surat_jalan.php';
               </script>";
     }

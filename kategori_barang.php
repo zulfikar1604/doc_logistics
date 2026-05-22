@@ -62,7 +62,7 @@ if (isset($_GET['hapus'])) {
     
     <style>
         :root {
-            /* [CLEANED by sidebar-global.css] */--primary-blue: #1a367e;
+            --primary-blue: #1a367e;
             --accent-yellow: #ffcc00;
             --bg-light: #f8fafc;
         }
@@ -70,24 +70,13 @@ if (isset($_GET['hapus'])) {
         body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); overflow-x: hidden; }
 
         /* --- CSS WAJIB LAYOUT --- */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
         
         @media (max-width: 768px) {
-            /* [CLEANED by sidebar-global.css] */
             #sidebar.show { margin-left: 0; }
-            /* [CLEANED by sidebar-global.css] */
-            /* [CLEANED by sidebar-global.css] */
         }
 
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
-        /* [CLEANED by sidebar-global.css] */
         #sidebar ul li a:hover, #sidebar ul li.active > a { color: #fff; background: rgba(255,255,255,0.1); border-left: 4px solid var(--accent-yellow); }
         #sidebar ul li a i { width: 25px; text-align: center; }
-        /* [CLEANED by sidebar-global.css] */
 
         /* --- TABLE PERCANTIK --- */
         .table-container { 
