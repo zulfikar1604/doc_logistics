@@ -81,7 +81,7 @@ while($s = mysqli_fetch_assoc($query_stok_barang)){
                         </div>
                         <div class="col-md-4 mb-3">
                             <label>Nomor Surat Jalan</label>
-                            <input type="text" name="no_sj" class="form-control form-control-sultan fw-bold text-primary bg-light" value="#SJ-<?php echo date('Ymd'); ?>-<?php echo rand(100,999); ?>" readonly>
+                            <input type="text" name="no_sj" class="form-control form-control-sultan fw-bold text-primary bg-light" value="SJ-<?php echo date('Ymd'); ?>-<?php echo rand(100,999); ?>" readonly>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label>Tanggal Pengiriman</label>

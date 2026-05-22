@@ -8,7 +8,7 @@ if (!isset($_SESSION['log'])) {
 }
 
 if (isset($_POST['tgl_kirim'])) {
-    $no_sj          = mysqli_real_escape_string($conn, $_POST['no_sj'] ?? '#SJ-'.date('Ymd').'-001');
+    $no_sj          = mysqli_real_escape_string($conn, $_POST['no_sj'] ?? 'SJ-'.date('Ymd').'-001');
     $tgl_kirim      = mysqli_real_escape_string($conn, $_POST['tgl_kirim']);
     $prioritas      = mysqli_real_escape_string($conn, $_POST['prioritas']);
     $id_driver      = mysqli_real_escape_string($conn, $_POST['driver_id']);

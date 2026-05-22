@@ -3,19 +3,20 @@ session_start();
 require 'koneksi.php';
 
 $resi = isset($_GET['resi']) ? mysqli_real_escape_string($conn, trim($_GET['resi'])) : '';
+$resi_clean = str_replace('#', '', $resi);
 $sj = null;
 $details = [];
 
-if (!empty($resi)) {
-    // 1. Ambil data utama Surat Jalan
+if (!empty($resi_clean)) {
+    // 1. Ambil data utama Surat Jalan (Robust: support resi dengan/tanpa hashtag)
     $query = "SELECT sj.*, 
-              l.nama_lengkap as nama_driver, d.no_hp as hp_driver,
+              l.nama_lengkap as nama_driver, d.no_telepon as hp_driver,
               a.nopol, a.tipe as tipe_armada
               FROM surat_jalan sj
               LEFT JOIN driver d ON sj.id_driver = d.id
               LEFT JOIN login l ON d.id_login = l.id
               LEFT JOIN armada a ON sj.id_armada = a.id
-              WHERE sj.no_sj = '$resi' LIMIT 1";
+              WHERE REPLACE(sj.no_sj, '#', '') = '$resi_clean' LIMIT 1";
     
     $q_sj = mysqli_query($conn, $query);
     $sj = mysqli_fetch_assoc($q_sj);
@@ -32,6 +33,17 @@ if (!empty($resi)) {
 <!DOCTYPE html>
 <html lang="id">
 <head>
+    <script>
+        // Tangani jika browser/scanner menerjemahkan %23 menjadi fragment URL (#)
+        // yang menyebabkan parameter GET 'resi' kosong di sisi PHP
+        if (window.location.hash && window.location.hash.includes('SJ-')) {
+            var hashVal = window.location.hash;
+            var cleanResi = hashVal.substring(hashVal.indexOf('SJ-'));
+            if (cleanResi) {
+                window.location.href = 'tracking.php?resi=' + encodeURIComponent(cleanResi);
+            }
+        }
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tracking Resi - Global Logistics</title>
@@ -187,13 +199,31 @@ if (!empty($resi)) {
                     <h5 class="fw-bold text-dark">Lacak Pengiriman</h5>
                     <p class="text-muted small">Masukkan nomor Surat Jalan Anda</p>
                 </div>
-                <form action="tracking.php" method="GET">
+                <form action="tracking.php" method="GET" id="form-tracking">
                     <div class="input-group mb-3">
-                        <span class="input-group-text bg-light border-0"><i class="fas fa-qrcode text-muted"></i></span>
-                        <input type="text" name="resi" class="form-control bg-light border-0 form-control-lg" placeholder="Contoh: SJ-2026..." required style="font-size:0.9rem;">
+                        <button type="button" class="input-group-text bg-light border-0 text-primary" id="btn-scan" title="Scan QR Code" style="cursor: pointer;">
+                            <i class="fas fa-qrcode"></i>
+                        </button>
+                        <input type="text" name="resi" id="input-resi" class="form-control bg-light border-0 form-control-lg" placeholder="Contoh: SJ-2026..." required style="font-size:0.9rem;">
                     </div>
                     <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold">Lacak Sekarang</button>
                 </form>
+
+                <!-- Modal Scanner -->
+                <div class="modal fade" id="scannerModal" tabindex="-1" aria-labelledby="scannerModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                            <div class="modal-header border-0 pb-0">
+                                <h5 class="modal-title fw-bold" id="scannerModalLabel"><i class="fas fa-camera text-primary me-2"></i>Scan QR Code</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="close-modal"></button>
+                            </div>
+                            <div class="modal-body text-center">
+                                <div id="reader" style="width: 100%; border-radius: 12px; overflow: hidden; border: 2px solid #e2e8f0;"></div>
+                                <p class="text-muted small mt-3 mb-0">Arahkan kamera ke QR Code pada label pengiriman.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         <?php else: ?>
             <!-- HASIL TRACKING -->
@@ -312,5 +342,67 @@ if (!empty($resi)) {
         <?php endif; ?>
 
     </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script>
+        let html5QrcodeScanner = null;
+
+        document.getElementById('btn-scan')?.addEventListener('click', function() {
+            if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                alert("Perhatian: Fitur scan kamera HANYA berfungsi jika website diakses menggunakan HTTPS (SSL).\n\nHosting Anda (InfinityFree) saat ini menggunakan HTTP. Silakan aktifkan Free SSL di panel InfinityFree Anda, atau gunakan fitur upload gambar (Pilih File) yang akan muncul di layar.");
+            }
+
+            var modalElement = document.getElementById('scannerModal');
+            var myModal = bootstrap.Modal.getInstance(modalElement);
+            if (!myModal) {
+                myModal = new bootstrap.Modal(modalElement);
+            }
+            myModal.show();
+
+            // Initialize scanner
+            setTimeout(() => {
+                if (!html5QrcodeScanner) {
+                    html5QrcodeScanner = new Html5QrcodeScanner(
+                        "reader", { fps: 10, qrbox: {width: 250, height: 250}, aspectRatio: 1.0 }, false);
+                    
+                    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+                }
+            }, 300);
+        });
+
+        document.getElementById('scannerModal')?.addEventListener('hidden.bs.modal', function () {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear().catch(error => {
+                    console.error("Failed to clear html5QrcodeScanner. ", error);
+                });
+                html5QrcodeScanner = null;
+            }
+        });
+
+        function onScanSuccess(decodedText, decodedResult) {
+            // Check if it's a URL
+            if(decodedText.includes('tracking.php?resi=')) {
+                let url = new URL(decodedText);
+                let resi = url.searchParams.get("resi");
+                if(resi) {
+                    document.getElementById('input-resi').value = resi;
+                } else {
+                    document.getElementById('input-resi').value = decodedText;
+                }
+            } else {
+                document.getElementById('input-resi').value = decodedText;
+            }
+            
+            // Close modal & submit
+            bootstrap.Modal.getInstance(document.getElementById('scannerModal')).hide();
+            document.getElementById('form-tracking').submit();
+        }
+
+        function onScanFailure(error) {
+            // handle scan failure, usually better to ignore and keep scanning
+        }
+    </script>
 </body>
 </html>

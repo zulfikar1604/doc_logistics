@@ -36,17 +36,17 @@ while ($row = mysqli_fetch_assoc($r)) {
 }
 
 // 2. Cari Driver (nama)
-$r = mysqli_query($conn, "SELECT l.nama_lengkap, d.no_hp, d.status_kerja
+$r = mysqli_query($conn, "SELECT l.nama_lengkap, d.no_telepon, d.status_kerja
                            FROM driver d
                            JOIN login l ON d.id_login = l.id
-                           WHERE l.nama_lengkap LIKE '%$q%' OR d.no_hp LIKE '%$q%'
+                           WHERE l.nama_lengkap LIKE '%$q%' OR d.no_telepon LIKE '%$q%'
                            LIMIT 3");
 while ($row = mysqli_fetch_assoc($r)) {
     $results[] = [
         'type'     => 'driver',
         'category' => 'Driver',
         'title'    => $row['nama_lengkap'],
-        'subtitle' => 'HP: ' . $row['no_hp'] . ' · Status: ' . $row['status_kerja'],
+        'subtitle' => 'HP: ' . $row['no_telepon'] . ' · Status: ' . $row['status_kerja'],
         'link'     => 'data_driver.php',
     ];
 }

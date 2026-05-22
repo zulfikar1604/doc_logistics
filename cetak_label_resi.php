@@ -28,14 +28,44 @@ if (!$sj) {
     exit();
 }
 
-// Hitung Absolute URL untuk QR Code
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
-$host = $_SERVER['HTTP_HOST']; 
-$uri_parts = explode('?', $_SERVER['REQUEST_URI'], 2);
-$base_dir = rtrim(dirname($uri_parts[0]), '\\/');
+// =====================================================================
+// BANGUN ABSOLUTE URL UNTUK QR CODE
+// Menggunakan SCRIPT_NAME agar bekerja konsisten di localhost maupun
+// shared hosting (InfinityFree, Hostinger, dll.)
+// =====================================================================
 
+// 1. Deteksi protokol (http / https)
+//    Cek berbagai header karena shared hosting sering pakai reverse proxy
+$is_https = false;
+if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+    $is_https = true;
+} elseif (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') {
+    $is_https = true;
+} elseif (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower($_SERVER['HTTP_X_FORWARDED_SSL']) === 'on') {
+    $is_https = true;
+} elseif (!empty($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443) {
+    $is_https = true;
+}
+$protocol = $is_https ? 'https://' : 'http://';
+
+// 2. Ambil host dari HTTP_HOST (sudah include port jika non-standar)
+$host = !empty($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : $_SERVER['SERVER_NAME'];
+
+// 3. Dapatkan direktori file ini berdasarkan SCRIPT_NAME
+//    Jauh lebih reliable dari REQUEST_URI karena tidak terpengaruh query string / fragment
+$base_dir = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
+// Pastikan tidak double-slash jika file ada di root domain
+if ($base_dir === '/' || $base_dir === '\\') {
+    $base_dir = '';
+}
+
+// 4. Bangun URL tracking lengkap
+//    urlencode() memastikan karakter seperti # pada no_sj tidak merusak URL
 $tracking_url = $protocol . $host . $base_dir . '/tracking.php?resi=' . urlencode($sj['no_sj']);
-$qr_api_url = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=0&data=" . urlencode($tracking_url);
+
+// 5. Generate QR Code via API eksternal
+//    Gunakan api.qrserver.com sebagai primary, ukuran 180x180 px
+$qr_api_url = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=0&data=' . urlencode($tracking_url);
 
 // Total quantity untuk label
 $q_det = mysqli_query($conn, "SELECT SUM(jumlah) as qty, COUNT(id) as total_item FROM surat_jalan_detail WHERE id_sj='$id'");
@@ -121,6 +151,14 @@ $total_item = $d_det['total_item'] ?? 0;
 <div>
     <div class="no-print">
         <button onclick="window.print()" class="btn-print"><i class="fas fa-print"></i> CETAK LABEL (A6)</button>
+        <!-- DEBUG: Tampil URL tracking yang di-embed ke QR Code. Hapus blok ini setelah konfirmasi berjalan. -->
+        <div style="margin-top:12px; padding:10px 15px; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; font-size:12px; max-width:500px; margin-left:auto; margin-right:auto; text-align:left;">
+            <strong>🔍 Debug URL QR Code:</strong><br>
+            <a href="<?= htmlspecialchars($tracking_url) ?>" target="_blank" style="word-break:break-all; color:#1a367e;">
+                <?= htmlspecialchars($tracking_url) ?>
+            </a>
+            <br><small style="color:#6b7280;">Klik link di atas untuk test apakah halaman tracking terbuka. Hapus blok debug ini setelah berhasil.</small>
+        </div>
     </div>
 
     <div class="label-container">
@@ -132,7 +170,10 @@ $total_item = $d_det['total_item'] ?? 0;
 
         <!-- QR CODE & RESI -->
         <div class="qr-section">
-            <img src="<?= $qr_api_url ?>" alt="QR Code Tracking" class="qr-image">
+            <img src="<?= $qr_api_url ?>" 
+                 alt="QR Code Tracking" 
+                 class="qr-image"
+                 onerror="this.src='https://chart.googleapis.com/chart?chs=180x180&cht=qr&chl=<?= urlencode($tracking_url) ?>'">
             <div class="resi-box">
                 <div class="resi-label">Nomor Resi / Order</div>
                 <div class="resi-number"><?= htmlspecialchars($sj['no_sj']) ?></div>
