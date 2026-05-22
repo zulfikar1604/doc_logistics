@@ -38,6 +38,25 @@ $sj_ontrip = mysqli_num_rows(mysqli_query($conn, "SELECT id FROM surat_jalan WHE
 $sj_delivered = mysqli_num_rows(mysqli_query($conn, "SELECT id FROM surat_jalan WHERE status='DELIVERED'"));
 $sj_finished = mysqli_num_rows(mysqli_query($conn, "SELECT id FROM surat_jalan WHERE status='FINISHED'"));
 $sj_total = $sj_draft + $sj_ontrip + $sj_delivered + $sj_finished;
+
+// 5. User, SKU, & Kategori
+$user_total = mysqli_num_rows(mysqli_query($conn, "SELECT id FROM login"));
+$sku_total = mysqli_num_rows(mysqli_query($conn, "SELECT id FROM stok_barang"));
+$kategori_total = mysqli_num_rows(mysqli_query($conn, "SELECT id FROM kategori_barang"));
+
+// 6. Fast & Slow Moving Items
+$q_fast = mysqli_query($conn, "SELECT nama_barang, SUM(jumlah) as total_kirim FROM surat_jalan_detail GROUP BY nama_barang ORDER BY total_kirim DESC LIMIT 5");
+$fast_moving = [];
+while ($r = mysqli_fetch_assoc($q_fast)) { $fast_moving[] = $r; }
+
+$q_slow = mysqli_query($conn, "SELECT nama_barang, SUM(jumlah) as total_kirim FROM surat_jalan_detail GROUP BY nama_barang ORDER BY total_kirim ASC LIMIT 5");
+$slow_moving = [];
+while ($r = mysqli_fetch_assoc($q_slow)) { $slow_moving[] = $r; }
+
+// 7. Barang Kritis (Low Stock)
+$q_kritis = mysqli_query($conn, "SELECT nama_barang, stok FROM stok_barang WHERE stok <= 10 ORDER BY stok ASC LIMIT 5");
+$barang_kritis = [];
+while ($r = mysqli_fetch_assoc($q_kritis)) { $barang_kritis[] = $r; }
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -54,57 +73,85 @@ $sj_total = $sj_draft + $sj_ontrip + $sj_delivered + $sj_finished;
 
     <style>
         :root {
-            --sidebar-width: 260px;
-            --primary-blue: #1e1b4b; /* Deep Indigo Sultan */
-            --accent-yellow: #fbbf24;
-            --bg-light: #f8fafc;
+            --primary-blue: #1a367e;
+            --accent-yellow: #ffcc00;
+            --bg-light: #f4f7fc;
         }
 
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg-light); overflow-x: hidden; color: #334155; }
 
-        /* --- KUNCI ANTI TABRAKAN (Sidebar & Main Content) --- */
-        #sidebar {
-            width: var(--sidebar-width); position: fixed; top: 0; left: 0; height: 100vh;
-            background: linear-gradient(180deg, var(--primary-blue) 0%, #0f172a 100%);
-            z-index: 1000; display: flex; flex-direction: column; transition: all 0.3s;
+        /* --- DASHBOARD HEADER --- */
+        .live-header {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, #0d1b3e 100%);
+            border-radius: 20px; padding: 28px 32px; color: white;
+            box-shadow: 0 16px 40px rgba(26,54,126,0.18);
+            margin-bottom: 28px; position: relative; overflow: hidden;
         }
-        #main-content { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); min-height: 100vh; transition: all 0.3s; }
-        
-        @media (max-width: 768px) {
-            #sidebar { margin-left: calc(var(--sidebar-width) * -1); }
-            #sidebar.show { margin-left: 0; }
-            #main-content { width: 100%; margin-left: 0; }
+        .live-header::after {
+            content: ''; position: absolute; top: -60%; right: -5%;
+            width: 40%; height: 220%;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 65%);
+            pointer-events: none;
+        }
+        .clock-widget { font-size: 2.2rem; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+        .date-widget   { font-size: 0.88rem; font-weight: 500; opacity: 0.75; margin-top: 4px; }
+
+        /* --- CARDS --- */
+        .modern-card {
+            background: #ffffff; border-radius: 18px; padding: 22px;
+            border: 1px solid rgba(0,0,0,0.04);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+            transition: transform 0.25s, box-shadow 0.25s;
+            height: 100%; position: relative; overflow: hidden;
+        }
+        .modern-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.09); }
+
+        .border-left-success { border-left: 5px solid #10b981 !important; }
+        .border-left-primary  { border-left: 5px solid #3b82f6 !important; }
+        .border-left-warning  { border-left: 5px solid #f59e0b !important; }
+        .border-left-danger   { border-left: 5px solid #ef4444 !important; }
+        .border-left-info     { border-left: 5px solid #0ea5e9 !important; }
+
+        .icon-box {
+            width: 48px; height: 48px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; color: white; flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+        }
+        .icon-box.bg-success { background: linear-gradient(135deg, #10b981, #059669) !important; }
+        .icon-box.bg-primary { background: linear-gradient(135deg, #3b82f6, #2563eb) !important; }
+        .icon-box.bg-warning { background: linear-gradient(135deg, #f59e0b, #d97706) !important; }
+        .icon-box.bg-danger  { background: linear-gradient(135deg, #ef4444, #dc2626) !important; }
+        .icon-box.bg-info    { background: linear-gradient(135deg, #0ea5e9, #0284c7) !important; }
+
+        .modern-card .stat-title {
+            font-size: 0.7rem; font-weight: 700; color: #94a3b8;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .modern-card .stat-val {
+            font-size: 2rem; font-weight: 800; color: #0f172a;
+            line-height: 1.1; margin: 10px 0 4px; letter-spacing: -1px;
         }
 
-        .sidebar-header { padding: 25px 20px; background: rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .sidebar-menu { padding: 20px 0; flex-grow: 1; overflow-y: auto; }
-        .menu-label { color: rgba(255,255,255,0.4); font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; padding: 0 25px; margin-bottom: 10px; display: block; }
-        #sidebar ul li a { padding: 12px 25px; color: rgba(255,255,255,0.7); text-decoration: none; display: block; font-size: 0.85rem; transition: 0.3s; }
-        #sidebar ul li a:hover, #sidebar ul li.active > a { color: #fff; background: rgba(255,255,255,0.1); border-left: 4px solid var(--accent-yellow); }
-        #sidebar ul li a i { width: 25px; text-align: center; }
-        .sidebar-footer { padding: 20px 25px; background: rgba(0,0,0,0.2); }
+        .modern-card.light-green   { background: #f0fdf4; border-left: 5px solid #10b981 !important; }
+        .modern-card.light-danger  { background: #fef2f2; border-left: 5px solid #ef4444 !important; }
+        .modern-card.light-warning { background: #fffbeb; border-left: 5px solid #f59e0b !important; }
+        .modern-card.light-blue    { background: #eff6ff; border-left: 5px solid #3b82f6 !important; }
 
-        .top-navbar { background: white; padding: 15px 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); position: sticky; top: 0; z-index: 998; }
+        .badge-luxe { padding: 5px 11px; border-radius: 8px; font-weight: 700; font-size: 0.68rem; }
 
-        /* --- DASHBOARD WIDGETS STYLE --- */
-        .live-header { background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); border-radius: 24px; padding: 30px; color: white; box-shadow: 0 20px 40px rgba(30,27,75,0.15); margin-bottom: 30px; position: relative; overflow: hidden; }
-        .live-header::after { content: ''; position: absolute; top: -50%; right: -10%; width: 50%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%); transform: rotate(30deg); pointer-events: none; }
-        
-        .clock-widget { font-size: 2.5rem; font-weight: 800; letter-spacing: -1px; text-shadow: 0 4px 10px rgba(0,0,0,0.2); line-height: 1;}
-        .date-widget { font-size: 1rem; font-weight: 500; opacity: 0.8; letter-spacing: 0.5px;}
+        /* Progress Bar */
+        .progress-modern { height: 7px; border-radius: 10px; background: #f1f5f9; overflow: hidden; margin-top: 14px; }
+        .progress-modern .progress-bar { border-radius: 10px; }
 
-        .sultan-card { background: white; border-radius: 20px; padding: 25px; border: 1px solid rgba(0,0,0,0.03); box-shadow: 0 10px 30px rgba(0,0,0,0.03); transition: transform 0.3s, box-shadow 0.3s; height: 100%;}
-        .sultan-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,0.06); }
-        
-        .stat-icon { width: 50px; height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 15px; }
-        .stat-val { font-size: 1.8rem; font-weight: 800; color: #0f172a; line-height: 1.2; }
-        .stat-title { font-size: 0.8rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
-        
-        .fin-card { background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; }
-        .fin-card.danger { background: linear-gradient(135deg, #e11d48 0%, #be123c 100%); }
-        .fin-card .stat-val, .fin-card .stat-title { color: white; }
-        
-        .badge-luxe { padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 0.7rem; }
+        /* Moving items list */
+        .item-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 9px 12px; border-radius: 10px;
+            margin-bottom: 6px; background: #f8fafc;
+        }
+        .item-row:last-child { margin-bottom: 0; }
+        .item-row .item-name { font-size: 0.82rem; font-weight: 600; color: #1e293b; }
     </style>
 </head>
 <body>
@@ -129,51 +176,84 @@ $sj_total = $sj_draft + $sj_ontrip + $sj_delivered + $sj_finished;
                 </div>
             </div>
 
-            <!-- ROW 1: FINANCIAL OVERVIEW -->
-            <h5 class="fw-bold mb-3"><i class="fas fa-wallet text-success me-2"></i> Ringkasan Finansial</h5>
-            <div class="row g-4 mb-5">
-                <div class="col-md-6">
-                    <div class="sultan-card fin-card">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div class="stat-icon bg-white bg-opacity-25 text-white"><i class="fas fa-chart-line"></i></div>
-                            <div class="badge bg-white bg-opacity-25 text-white">Lunas (PAID)</div>
+            <!-- ROW 1: 4 STAT CARDS SIMETRIS -->
+            <div class="row g-3 mb-4">
+                <div class="col-lg-3 col-md-6">
+                    <div class="modern-card light-green">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stat-title text-success">Revenue (Paid)</div>
+                                <div class="stat-val text-success" style="font-size:1.5rem;">Rp <?= number_format($total_revenue, 0, ',', '.') ?></div>
+                                <div class="small text-muted mt-1">Pendapatan diterima</div>
+                            </div>
+                            <div class="icon-box bg-success"><i class="fas fa-money-bill-wave"></i></div>
                         </div>
-                        <div class="stat-title opacity-75">Total Pendapatan Diterima</div>
-                        <div class="stat-val mt-1">Rp <?= number_format($total_revenue, 0, ',', '.') ?></div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="sultan-card fin-card danger">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div class="stat-icon bg-white bg-opacity-25 text-white"><i class="fas fa-file-invoice-dollar"></i></div>
-                            <div class="badge bg-white bg-opacity-25 text-white">Menunggu (UNPAID)</div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="modern-card light-danger">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stat-title text-danger">Piutang (Unpaid)</div>
+                                <div class="stat-val text-danger" style="font-size:1.5rem;">Rp <?= number_format($total_piutang, 0, ',', '.') ?></div>
+                                <div class="small text-muted mt-1">Belum dibayar klien</div>
+                            </div>
+                            <div class="icon-box bg-danger"><i class="fas fa-file-invoice-dollar"></i></div>
                         </div>
-                        <div class="stat-title opacity-75">Total Piutang Berjalan</div>
-                        <div class="stat-val mt-1">Rp <?= number_format($total_piutang, 0, ',', '.') ?></div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="modern-card light-blue">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stat-title text-primary">Total Pengguna</div>
+                                <div class="stat-val text-primary"><?= $user_total ?></div>
+                                <div class="small text-muted mt-1">Akun terdaftar</div>
+                            </div>
+                            <div class="icon-box bg-primary"><i class="fas fa-users"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="modern-card light-warning">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stat-title" style="color:#d97706;">SKU / Kategori</div>
+                                <div class="stat-val text-warning"><?= $sku_total ?> <small style="font-size:1rem;color:#94a3b8;font-weight:500;">/ <?= $kategori_total ?></small></div>
+                                <div class="small text-muted mt-1">Jenis barang & kategori</div>
+                            </div>
+                            <div class="icon-box bg-warning"><i class="fas fa-box-open"></i></div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- ROW 2: OPERATIONAL & ASSETS -->
-            <h5 class="fw-bold mb-3"><i class="fas fa-cogs text-primary me-2"></i> Status Operasional & Aset</h5>
             <div class="row g-4 mb-5">
                 
                 <!-- Quick SJ Stats -->
                 <div class="col-lg-3 col-md-6">
-                    <div class="sultan-card text-center p-4">
-                        <div class="stat-val text-primary text-center mb-1"><?= $sj_total ?></div>
-                        <div class="stat-title text-center">Total Pengiriman</div>
-                        <div class="mt-4 pt-3 border-top text-start">
-                            <div class="d-flex justify-content-between mb-2 small"><span class="text-muted">On Trip</span><span class="fw-bold text-primary"><?= $sj_ontrip ?></span></div>
-                            <div class="d-flex justify-content-between mb-2 small"><span class="text-muted">Delivered</span><span class="fw-bold text-success"><?= $sj_delivered ?></span></div>
-                            <div class="d-flex justify-content-between small"><span class="text-muted">Finished</span><span class="fw-bold text-success"><?= $sj_finished ?></span></div>
+                    <div class="modern-card border-left-success">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="stat-title">ORDER FULFILLMENT</div>
+                                <?php 
+                                    $pct_selesai = ($sj_total > 0) ? round(($sj_finished + $sj_delivered) / $sj_total * 100, 1) : 0;
+                                ?>
+                                <div class="stat-val text-success"><?= $pct_selesai ?>%</div>
+                                <div class="small text-muted mt-2"><?= ($sj_finished + $sj_delivered) ?> selesai dari <?= $sj_total ?> order</div>
+                            </div>
+                            <div class="icon-box bg-success"><i class="fas fa-check-circle"></i></div>
+                        </div>
+                        <div class="progress-modern">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: <?= $pct_selesai ?>%"></div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Driver Chart -->
                 <div class="col-lg-3 col-md-6">
-                    <div class="sultan-card text-center p-3 d-flex flex-column justify-content-center">
+                    <div class="modern-card text-center p-3 d-flex flex-column justify-content-center border-left-info">
                         <div class="stat-title mb-2">Kesiapan Driver (<?= $driver_total ?>)</div>
                         <div style="height: 180px; position: relative; margin: 0 auto; width: 100%;">
                             <canvas id="driverChart"></canvas>
@@ -183,7 +263,7 @@ $sj_total = $sj_draft + $sj_ontrip + $sj_delivered + $sj_finished;
 
                 <!-- Armada Chart -->
                 <div class="col-lg-3 col-md-6">
-                    <div class="sultan-card text-center p-3 d-flex flex-column justify-content-center">
+                    <div class="modern-card text-center p-3 d-flex flex-column justify-content-center border-left-warning">
                         <div class="stat-title mb-2">Utilitas Armada (<?= $armada_total ?>)</div>
                         <div style="height: 180px; position: relative; margin: 0 auto; width: 100%;">
                             <canvas id="armadaChart"></canvas>
@@ -193,7 +273,7 @@ $sj_total = $sj_draft + $sj_ontrip + $sj_delivered + $sj_finished;
 
                 <!-- Quick Actions -->
                 <div class="col-lg-3 col-md-6">
-                    <div class="sultan-card bg-dark text-white d-flex flex-column justify-content-center" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;">
+                    <div class="modern-card bg-dark text-white d-flex flex-column justify-content-center border-0" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;">
                         <h6 class="fw-bold mb-4 text-center">Akses Cepat</h6>
                         <div class="d-grid gap-2">
                             <?php if($role != 'DRIVER'): ?>
@@ -210,7 +290,7 @@ $sj_total = $sj_draft + $sj_ontrip + $sj_delivered + $sj_finished;
             </div>
 
             <!-- ROW 3: RECENT ACTIVITIES -->
-            <div class="sultan-card mb-4">
+            <div class="modern-card mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="fw-bold mb-0"><i class="fas fa-history text-secondary me-2"></i> Aktivitas Pengiriman Terkini</h5>
                     <a href="manajemen_dokumen.php" class="btn btn-light border btn-sm fw-bold rounded-pill px-3">Arsip Lengkap</a>
@@ -263,6 +343,67 @@ $sj_total = $sj_draft + $sj_ontrip + $sj_delivered + $sj_finished;
                             <?php } ?>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- ROW 4: FAST, SLOW & CRITICAL — Equal 3-col -->
+            <div class="row g-3 mb-4">
+                <div class="col-lg-4">
+                    <div class="modern-card" style="min-height:260px;">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <div class="icon-box bg-success" style="width:34px;height:34px;border-radius:10px;font-size:0.9rem;"><i class="fas fa-arrow-trend-up"></i></div>
+                            <h6 class="fw-bold mb-0 text-success" style="font-size:0.85rem;">Fast Moving (Top 5)</h6>
+                        </div>
+                        <?php if(empty($fast_moving)): ?>
+                            <div class="text-muted text-center py-4" style="font-size:0.82rem;">Belum ada data pengiriman</div>
+                        <?php else: ?>
+                            <?php foreach($fast_moving as $fm): ?>
+                            <div class="item-row">
+                                <span class="item-name"><i class="fas fa-box text-success me-2" style="font-size:0.75rem;"></i><?= htmlspecialchars($fm['nama_barang']) ?></span>
+                                <span class="badge rounded-pill" style="background:#dcfce7;color:#15803d;font-size:0.7rem;"><?= $fm['total_kirim'] ?></span>
+                            </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="modern-card" style="min-height:260px;">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <div class="icon-box" style="width:34px;height:34px;border-radius:10px;font-size:0.9rem;background:linear-gradient(135deg,#64748b,#475569);"><i class="fas fa-arrow-trend-down"></i></div>
+                            <h6 class="fw-bold mb-0 text-secondary" style="font-size:0.85rem;">Slow Moving (Bottom 5)</h6>
+                        </div>
+                        <?php if(empty($slow_moving)): ?>
+                            <div class="text-muted text-center py-4" style="font-size:0.82rem;">Belum ada data pengiriman</div>
+                        <?php else: ?>
+                            <?php foreach($slow_moving as $sm): ?>
+                            <div class="item-row">
+                                <span class="item-name"><i class="fas fa-box text-secondary me-2" style="font-size:0.75rem;"></i><?= htmlspecialchars($sm['nama_barang']) ?></span>
+                                <span class="badge rounded-pill" style="background:#f1f5f9;color:#64748b;font-size:0.7rem;"><?= $sm['total_kirim'] ?></span>
+                            </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="modern-card border-left-danger" style="min-height:260px;">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <div class="icon-box bg-danger" style="width:34px;height:34px;border-radius:10px;font-size:0.9rem;"><i class="fas fa-exclamation-triangle"></i></div>
+                            <h6 class="fw-bold mb-0 text-danger" style="font-size:0.85rem;">Stok Kritis (&le; 10)</h6>
+                        </div>
+                        <?php if(empty($barang_kritis)): ?>
+                            <div class="text-center py-4">
+                                <i class="fas fa-check-circle text-success mb-2" style="font-size:1.8rem;"></i>
+                                <div class="text-success fw-bold" style="font-size:0.82rem;">Semua stok aman</div>
+                            </div>
+                        <?php else: ?>
+                            <?php foreach($barang_kritis as $bk): ?>
+                            <div class="item-row" style="background:#fef2f2;">
+                                <span class="item-name text-danger"><i class="fas fa-exclamation-circle me-2" style="font-size:0.75rem;"></i><?= htmlspecialchars($bk['nama_barang']) ?></span>
+                                <span class="badge rounded-pill bg-danger" style="font-size:0.7rem;">Sisa <?= $bk['stok'] ?></span>
+                            </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
 

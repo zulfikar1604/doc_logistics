@@ -1,0 +1,309 @@
+/* ============================================================
+   GLOBAL SIDEBAR CSS - PT ELEKTRONIK GLOBAL
+   Diimpor otomatis via sidebar.php ke semua halaman
+   Menggunakan !important untuk menimpa semua CSS per-halaman
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
+/* --- ROOT VARIABLES --- */
+:root {
+    --sidebar-w: 265px;
+    --sidebar-bg-top: #1a367e;
+    --sidebar-bg-bot: #0d1b3e;
+    --sidebar-accent: #ffcc00;
+    --sidebar-text: rgba(255,255,255,0.72);
+    --sidebar-text-hover: #ffffff;
+    --sidebar-hover-bg: rgba(255,255,255,0.09);
+    --sidebar-active-bg: rgba(255,255,255,0.13);
+    --sidebar-border: rgba(255,255,255,0.07);
+    --sidebar-label: rgba(255,200,0,0.75);
+}
+
+/* --- BODY RESET --- */
+body {
+    font-family: 'Poppins', sans-serif !important;
+    overflow-x: hidden !important;
+}
+
+/* =====================
+   SIDEBAR CORE
+   ===================== */
+#sidebar {
+    width: var(--sidebar-w) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    background: linear-gradient(180deg, var(--sidebar-bg-top) 0%, var(--sidebar-bg-bot) 100%) !important;
+    z-index: 1050 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.22) !important;
+    border-right: 1px solid var(--sidebar-border) !important;
+    overflow: hidden !important;
+}
+
+/* Hidden on mobile */
+@media (max-width: 768px) {
+    #sidebar {
+        margin-left: calc(var(--sidebar-w) * -1) !important;
+    }
+    #sidebar.show {
+        margin-left: 0 !important;
+    }
+    #main-content {
+        width: 100% !important;
+        margin-left: 0 !important;
+    }
+}
+
+/* =====================
+   MAIN CONTENT OFFSET
+   ===================== */
+#main-content {
+    margin-left: var(--sidebar-w) !important;
+    width: calc(100% - var(--sidebar-w)) !important;
+    min-height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    transition: all 0.3s ease !important;
+    background-color: #f4f7fc !important;
+}
+
+/* =====================
+   HEADER BRANDING
+   ===================== */
+.sidebar-header {
+    padding: 22px 20px 18px !important;
+    background: rgba(0,0,0,0.18) !important;
+    border-bottom: 1px solid var(--sidebar-border) !important;
+    flex-shrink: 0 !important;
+}
+
+.sidebar-header h5,
+.sidebar-header .brand-name {
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 0.98rem !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    letter-spacing: 0.5px !important;
+    margin: 0 !important;
+    line-height: 1.3 !important;
+}
+
+.sidebar-header .brand-sub {
+    font-size: 0.7rem !important;
+    color: var(--sidebar-accent) !important;
+    font-weight: 500 !important;
+    letter-spacing: 1.5px !important;
+    text-transform: uppercase !important;
+    margin-top: 2px !important;
+}
+
+.sidebar-header hr {
+    border-color: var(--sidebar-border) !important;
+    opacity: 1 !important;
+    margin: 12px 0 0 !important;
+}
+
+/* =====================
+   MENU SCROLL AREA
+   ===================== */
+.sidebar-menu {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 8px 0 16px !important;
+}
+
+/* Custom scrollbar */
+.sidebar-menu::-webkit-scrollbar {
+    width: 3px !important;
+}
+.sidebar-menu::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+.sidebar-menu::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15) !important;
+    border-radius: 4px !important;
+}
+
+/* =====================
+   MENU SECTION LABELS
+   ===================== */
+.menu-label {
+    display: block !important;
+    color: var(--sidebar-label) !important;
+    font-size: 0.62rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 2px !important;
+    text-transform: uppercase !important;
+    padding: 16px 20px 6px !important;
+    margin: 0 !important;
+}
+
+/* =====================
+   LIST RESET
+   ===================== */
+#sidebar ul,
+#sidebar ul.components {
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 0 0 4px !important;
+}
+
+/* =====================
+   MENU LINKS
+   ===================== */
+#sidebar ul li a {
+    display: flex !important;
+    align-items: center !important;
+    padding: 10px 20px 10px 18px !important;
+    color: var(--sidebar-text) !important;
+    text-decoration: none !important;
+    font-size: 0.84rem !important;
+    font-weight: 500 !important;
+    border-left: 3px solid transparent !important;
+    transition: all 0.22s ease !important;
+    position: relative !important;
+    gap: 10px !important;
+}
+
+#sidebar ul li a i {
+    font-size: 0.95rem !important;
+    width: 20px !important;
+    text-align: center !important;
+    flex-shrink: 0 !important;
+    color: inherit !important;
+}
+
+/* Hover */
+#sidebar ul li a:hover {
+    color: var(--sidebar-text-hover) !important;
+    background: var(--sidebar-hover-bg) !important;
+    border-left-color: rgba(255,204,0,0.4) !important;
+}
+
+/* Active */
+#sidebar ul li.active > a {
+    color: #ffffff !important;
+    background: var(--sidebar-active-bg) !important;
+    border-left-color: var(--sidebar-accent) !important;
+    font-weight: 600 !important;
+}
+
+#sidebar ul li.active > a i {
+    color: var(--sidebar-accent) !important;
+}
+
+/* =====================
+   DROPDOWN TOGGLE
+   ===================== */
+#sidebar ul li a.dropdown-toggle::after {
+    content: '\f054' !important;
+    font-family: 'Font Awesome 6 Free' !important;
+    font-weight: 900 !important;
+    font-size: 0.6rem !important;
+    margin-left: auto !important;
+    transition: transform 0.25s ease !important;
+    opacity: 0.5 !important;
+}
+
+#sidebar ul li a.dropdown-toggle[aria-expanded="true"]::after {
+    transform: rotate(90deg) !important;
+    opacity: 0.9 !important;
+}
+
+/* =====================
+   SUBMENU
+   ===================== */
+ul.submenu {
+    background: rgba(0,0,0,0.15) !important;
+    padding: 4px 0 !important;
+    margin: 0 !important;
+    list-style: none !important;
+}
+
+ul.submenu li a {
+    padding: 8px 20px 8px 50px !important;
+    font-size: 0.79rem !important;
+    color: rgba(255,255,255,0.58) !important;
+    border-left: 3px solid transparent !important;
+}
+
+ul.submenu li a:hover {
+    color: #fff !important;
+    background: rgba(255,255,255,0.06) !important;
+    border-left-color: rgba(255,204,0,0.3) !important;
+}
+
+ul.submenu li.active > a {
+    color: var(--sidebar-accent) !important;
+    font-weight: 600 !important;
+    background: rgba(255,204,0,0.06) !important;
+    border-left-color: var(--sidebar-accent) !important;
+}
+
+/* =====================
+   SIDEBAR FOOTER
+   ===================== */
+.sidebar-footer {
+    padding: 14px 20px !important;
+    background: rgba(0,0,0,0.25) !important;
+    border-top: 1px solid var(--sidebar-border) !important;
+    flex-shrink: 0 !important;
+}
+
+.sidebar-footer .user-role {
+    font-size: 0.7rem !important;
+    color: rgba(255,255,255,0.45) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.5px !important;
+    margin-bottom: 3px !important;
+}
+
+.sidebar-footer .user-name {
+    font-size: 0.88rem !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    margin-bottom: 10px !important;
+}
+
+.sidebar-footer .btn-logout {
+    display: flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    padding: 7px 14px !important;
+    background: rgba(255,255,255,0.06) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    border-radius: 8px !important;
+    color: rgba(255,90,90,0.85) !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+    transition: all 0.2s ease !important;
+    width: 100% !important;
+}
+
+.sidebar-footer .btn-logout:hover {
+    background: rgba(239,68,68,0.12) !important;
+    border-color: rgba(239,68,68,0.3) !important;
+    color: #ff6b6b !important;
+}
+
+/* =====================
+   TOP NAVBAR (Global)
+   ===================== */
+.top-navbar {
+    background: #ffffff !important;
+    padding: 12px 28px !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05) !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}

@@ -7,12 +7,12 @@ if (!isset($_SESSION['log'])) {
     exit();
 }
 
-$email_user = $_SESSION['email'];
-$role = strtoupper($_SESSION['role']);
+$email_user = isset($_SESSION['email']) ? $_SESSION['email'] : '';
+$role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'STAF';
 $pesan_update = "";
 
 // --- LOGIKA 1: UPLOAD FOTO PROFILE ---
-if (isset($_POST['update_foto'])) {
+if (isset($_POST['update_foto']) && !empty($email_user)) {
     $nama_file = $_FILES['foto_profil']['name'];
     $ukuran_file = $_FILES['foto_profil']['size'];
     $error = $_FILES['foto_profil']['error'];
@@ -40,7 +40,7 @@ if (isset($_POST['update_foto'])) {
 }
 
 // --- LOGIKA 2: UPDATE NAMA LENGKAP ---
-if (isset($_POST['update_nama'])) {
+if (isset($_POST['update_nama']) && !empty($email_user)) {
     $nama_baru = mysqli_real_escape_string($conn, $_POST['nama_lengkap']);
     $update = mysqli_query($conn, "UPDATE login SET nama_lengkap = '$nama_baru' WHERE email = '$email_user'");
     if ($update) {
@@ -50,13 +50,26 @@ if (isset($_POST['update_nama'])) {
 }
 
 // Ambil data user terbaru
-$q_user = mysqli_query($conn, "SELECT * FROM login WHERE email = '$email_user'");
-$user = mysqli_fetch_assoc($q_user);
+$user = null;
+if (!empty($email_user)) {
+    $q_user = mysqli_query($conn, "SELECT * FROM login WHERE email = '$email_user'");
+    $user = mysqli_fetch_assoc($q_user);
+}
+
+// Fallback jika user tidak ditemukan
+if (!$user) {
+    $user = [
+        'id' => 0,
+        'nama_lengkap' => !empty($_SESSION['nama_lengkap']) ? $_SESSION['nama_lengkap'] : 'Administrator',
+        'email' => !empty($email_user) ? $email_user : 'Belum diatur',
+        'foto' => ''
+    ];
+}
 
 $foto_tampil = (!empty($user['foto'])) ? "assets/img/".$user['foto'] : "https://ui-avatars.com/api/?name=".urlencode($user['nama_lengkap'])."&background=1a367e&color=fff&size=150";
 
 $driver_data = null;
-if ($role == 'DRIVER') {
+if ($role == 'DRIVER' && !empty($user['id'])) {
     $q_driver = mysqli_query($conn, "SELECT * FROM driver WHERE id_login = '{$user['id']}'");
     $driver_data = mysqli_fetch_assoc($q_driver);
 }
@@ -74,8 +87,7 @@ if ($role == 'DRIVER') {
     <style>
         /* --- CSS MASTER (Sesuai Permintaan) --- */
         :root {
-            --sidebar-width: 260px;
-            --primary-blue: #1a367e;
+            /* [CLEANED by sidebar-global.css] */--primary-blue: #1a367e;
             --accent-yellow: #ffcc00;
             --bg-light: #f8fafc;
         }
@@ -83,31 +95,24 @@ if ($role == 'DRIVER') {
         body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); overflow-x: hidden; }
 
         /* --- CSS WAJIB LAYOUT --- */
-        #sidebar {
-            width: var(--sidebar-width); position: fixed; top: 0; left: 0; height: 100vh;
-            background: linear-gradient(180deg, var(--primary-blue) 0%, #0d1b3e 100%);
-            z-index: 1000; display: flex; flex-direction: column; transition: all 0.3s;
-        }
-        #main-content {
-            margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); 
-            min-height: 100vh; display: flex; flex-direction: column; transition: all 0.3s;
-        }
-        .top-navbar { background: white; padding: 15px 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 998; }
+        /* [CLEANED by sidebar-global.css] */
+        /* [CLEANED by sidebar-global.css] */
+        /* [CLEANED by sidebar-global.css] */
         
         @media (max-width: 768px) {
-            #sidebar { margin-left: calc(var(--sidebar-width) * -1); }
+            /* [CLEANED by sidebar-global.css] */
             #sidebar.show { margin-left: 0; }
-            #main-content { width: 100%; margin-left: 0; }
-            .top-navbar { padding: 15px; }
+            /* [CLEANED by sidebar-global.css] */
+            /* [CLEANED by sidebar-global.css] */
         }
 
-        .sidebar-header { padding: 25px 20px; background: rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .sidebar-menu { padding: 20px 0; flex-grow: 1; overflow-y: auto; }
-        .menu-label { color: rgba(255,255,255,0.4); font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; padding: 0 25px; margin-bottom: 10px; display: block; }
-        #sidebar ul li a { padding: 12px 25px; color: rgba(255,255,255,0.7); text-decoration: none; display: block; font-size: 0.85rem; transition: 0.3s; }
+        /* [CLEANED by sidebar-global.css] */
+        /* [CLEANED by sidebar-global.css] */
+        /* [CLEANED by sidebar-global.css] */
+        /* [CLEANED by sidebar-global.css] */
         #sidebar ul li a:hover, #sidebar ul li.active > a { color: #fff; background: rgba(255,255,255,0.1); border-left: 4px solid var(--accent-yellow); }
         #sidebar ul li a i { width: 25px; text-align: center; }
-        .sidebar-footer { padding: 20px 25px; background: rgba(0,0,0,0.2); }
+        /* [CLEANED by sidebar-global.css] */
 
         /* --- CSS KHUSUS PROFIL --- */
         .card-sultan { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.05); }

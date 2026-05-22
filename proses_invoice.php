@@ -60,6 +60,11 @@ if (isset($_POST['nama_klien'])) {
         // Komit Transaksi
         mysqli_commit($conn);
 
+        // Buat Notifikasi ke Manager
+        if (function_exists('buat_notifikasi')) {
+            buat_notifikasi($conn, 'MANAGER', 0, "Invoice Baru Diterbitkan", "Invoice $no_invoice untuk $nama_klien berhasil dibuat.", "success", "manajemen_invoice.php");
+        }
+
         // Berhasil! Langsung arahkan ke halaman cetak atau daftar invoice
         echo "<script>
                 alert('Invoice $no_invoice berhasil diterbitkan!');

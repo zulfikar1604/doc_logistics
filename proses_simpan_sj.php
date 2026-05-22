@@ -91,8 +91,21 @@ if (isset($_POST['tgl_kirim'])) {
             }
         }
 
-        // 3. Kalkulasi PPN
+        // 3. Kalkulasi PPN & Biaya Prioritas
         $subtotal_sebelum_pajak = $total_harga_barang + $ongkos_kirim;
+        
+        $biaya_prioritas = 0;
+        $desc_prioritas = "";
+        if ($prioritas == 'Urgent') {
+            $biaya_prioritas = $ongkos_kirim * 0.20; // Tambahan 20% dari ongkos kirim
+            $desc_prioritas = "Biaya Layanan (Urgent Priority 20%)";
+        } elseif ($prioritas == 'High') {
+            $biaya_prioritas = $ongkos_kirim * 0.50; // Tambahan 50% dari ongkos kirim
+            $desc_prioritas = "Biaya Layanan (High Priority 50%)";
+        }
+        
+        $subtotal_sebelum_pajak += $biaya_prioritas;
+
         $ppn = $subtotal_sebelum_pajak * 0.11;
         $total_tagihan_akhir = $subtotal_sebelum_pajak + $ppn;
 
@@ -115,13 +128,36 @@ if (isset($_POST['tgl_kirim'])) {
         $desc_ongkir = "Biaya Pengiriman (Rute: $nama_rute)";
         mysqli_query($conn, "INSERT INTO invoice_detail (id_invoice, deskripsi, tarif, qty, subtotal) VALUES ('$id_invoice_terbaru', '$desc_ongkir', '$ongkos_kirim', '1', '$ongkos_kirim')");
         
-        // 5.c PPN
+        // 5.c Biaya Prioritas
+        if ($biaya_prioritas > 0) {
+            mysqli_query($conn, "INSERT INTO invoice_detail (id_invoice, deskripsi, tarif, qty, subtotal) VALUES ('$id_invoice_terbaru', '$desc_prioritas', '$biaya_prioritas', '1', '$biaya_prioritas')");
+        }
+        
+        // 5.d PPN
         $desc_ppn = "PPN 11%";
         mysqli_query($conn, "INSERT INTO invoice_detail (id_invoice, deskripsi, tarif, qty, subtotal) VALUES ('$id_invoice_terbaru', '$desc_ppn', '$ppn', '1', '$ppn')");
 
         // 6. Update Status Driver & Armada menjadi ON TRIP (Langsung berangkat, invoice menyusul)
         mysqli_query($conn, "UPDATE driver SET status_kerja = 'ON TRIP' WHERE id = '$id_driver'");
         mysqli_query($conn, "UPDATE armada SET status = 'ON TRIP' WHERE id = '$id_armada'");
+
+        // 7. Insert Notification
+        $notif_judul = "Surat Jalan Diterbitkan";
+        $notif_pesan = "Dokumen $no_sj dengan rute $nama_rute telah diterbitkan dan driver siap berangkat.";
+        
+        if (function_exists('buat_notifikasi')) {
+            // Notif ke Manager
+            buat_notifikasi($conn, 'MANAGER', 0, $notif_judul, $notif_pesan, "success", "status_pengiriman.php");
+            
+            // Notif ke Driver spesifik
+            $q_drv = mysqli_query($conn, "SELECT id_login FROM driver WHERE id='$id_driver'");
+            if ($q_drv && mysqli_num_rows($q_drv) > 0) {
+                $d_drv = mysqli_fetch_assoc($q_drv);
+                if (!empty($d_drv['id_login'])) {
+                    buat_notifikasi($conn, '', $d_drv['id_login'], "Rute Baru Ditugaskan!", "Anda ditugaskan untuk Surat Jalan $no_sj ($nama_rute).", "info", "dashboard_driver.php");
+                }
+            }
+        }
 
         mysqli_commit($conn);
 

@@ -18,6 +18,9 @@ if (isset($_POST['tambah_stok'])) {
     $query = mysqli_query($conn, "INSERT INTO stok_barang (nama_barang, kategori, stok, satuan, harga) VALUES ('$nama_barang', '$kategori', '$stok', '$satuan', '$harga')");
     
     if($query) {
+        if ($stok <= 10 && function_exists('buat_notifikasi')) {
+            buat_notifikasi($conn, 'MANAGER', 0, "Peringatan Stok Kritis", "Barang baru '$nama_barang' ditambahkan dengan stok minim ($stok $satuan).", 'warning', 'stok_barang.php');
+        }
         echo "<script>alert('Barang berhasil ditambahkan!'); window.location.href='stok_barang.php';</script>";
     } else {
         echo "<script>alert('Gagal menambah barang: " . mysqli_error($conn) . "');</script>";
@@ -33,9 +36,19 @@ if (isset($_POST['edit_stok'])) {
     $satuan      = mysqli_real_escape_string($conn, $_POST['satuan']);
     $harga       = mysqli_real_escape_string($conn, $_POST['harga']); // TAMBAHAN: Harga
 
+    // Ambil stok lama
+    $q_old = mysqli_query($conn, "SELECT stok FROM stok_barang WHERE id='$id_barang'");
+    $old_data = mysqli_fetch_assoc($q_old);
+    $old_stok = $old_data['stok'] ?? 0;
+
     $query = mysqli_query($conn, "UPDATE stok_barang SET nama_barang='$nama_barang', kategori='$kategori', stok='$stok', satuan='$satuan', harga='$harga' WHERE id='$id_barang'");
     
     if($query) {
+        // Trigger Notifikasi jika stok drop ke kritis (<= 10)
+        if ($old_stok > 10 && $stok <= 10 && function_exists('buat_notifikasi')) {
+            buat_notifikasi($conn, 'MANAGER', 0, "Peringatan Stok Menipis", "Stok barang '$nama_barang' tersisa $stok $satuan.", 'warning', 'stok_barang.php');
+        }
+        
         echo "<script>alert('Data barang berhasil diupdate!'); window.location.href='stok_barang.php';</script>";
     } else {
         echo "<script>alert('Gagal update barang: " . mysqli_error($conn) . "');</script>";
@@ -73,8 +86,7 @@ while ($kat = mysqli_fetch_assoc($query_kategori)) {
     
     <style>
         :root {
-            --sidebar-width: 260px;
-            --primary-blue: #1a367e;
+            /* [CLEANED by sidebar-global.css] */--primary-blue: #1a367e;
             --accent-yellow: #ffcc00;
             --bg-light: #f4f7f6;
         }
@@ -82,20 +94,16 @@ while ($kat = mysqli_fetch_assoc($query_kategori)) {
         body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); overflow-x: hidden; }
 
         /* --- LAYOUT ANTI TABRAKAN --- */
-        #sidebar {
-            width: var(--sidebar-width); position: fixed; top: 0; left: 0; height: 100vh;
-            background: linear-gradient(180deg, var(--primary-blue) 0%, #0d1b3e 100%);
-            z-index: 999; display: flex; flex-direction: column;
-        }
-        #main-content { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); min-height: 100vh; display: flex; flex-direction: column; }
-        .sidebar-header { padding: 25px 20px; background: rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .sidebar-menu { padding: 20px 0; flex-grow: 1; overflow-y: auto; }
-        .menu-label { color: rgba(255,255,255,0.4); font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; padding: 0 25px; margin-bottom: 10px; display: block; }
-        #sidebar ul li a { padding: 12px 25px; color: rgba(255,255,255,0.7); text-decoration: none; display: block; font-size: 0.85rem; transition: 0.3s; }
+        /* [CLEANED by sidebar-global.css] */
+        /* [CLEANED by sidebar-global.css] */
+        /* [CLEANED by sidebar-global.css] */
+        /* [CLEANED by sidebar-global.css] */
+        /* [CLEANED by sidebar-global.css] */
+        /* [CLEANED by sidebar-global.css] */
         #sidebar ul li a:hover, #sidebar ul li.active > a { color: #fff; background: rgba(255,255,255,0.1); border-left: 4px solid var(--accent-yellow); }
         #sidebar ul li a i { width: 25px; text-align: center; }
-        .sidebar-footer { padding: 20px 25px; background: rgba(0,0,0,0.2); }
-        .top-navbar { background: white; padding: 15px 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 998; }
+        /* [CLEANED by sidebar-global.css] */
+        /* [CLEANED by sidebar-global.css] */
 
         /* --- STYLE KARTU STOK --- */
         .stock-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.05); }

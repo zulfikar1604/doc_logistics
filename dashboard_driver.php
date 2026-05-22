@@ -41,7 +41,13 @@ if (isset($_POST['checkin_route'])) {
         } else {
             mysqli_query($conn, "UPDATE surat_jalan SET last_checkpoint_return_id='$inserted_id' WHERE id='$id_sj'");
         }
-        
+        // Insert Notification for Admin
+        $notif_judul = "Driver Check-in Lokasi";
+        $notif_pesan = "Driver $nama_driver telah sampai di titik checkpoint rute Surat Jalan #$id_sj.";
+        if (function_exists('buat_notifikasi')) {
+            buat_notifikasi($conn, 'MANAGER', 0, $notif_judul, $notif_pesan, 'info', "live_tracking.php?order=$id_sj");
+        }
+
         mysqli_commit($conn);
         echo "<script>alert('Berhasil Check-in di Checkpoint!'); window.location.href='dashboard_driver.php';</script>";
     } catch (Exception $e) {
@@ -63,7 +69,13 @@ if (isset($_POST['selesaikan_trip'])) {
         mysqli_query($conn, "UPDATE surat_jalan SET status='DELIVERED' WHERE id='$id_sj'");
         mysqli_query($conn, "UPDATE driver SET status_kerja='RETURNING' WHERE id='$id_supir_asli'");
         mysqli_query($conn, "UPDATE armada SET status='RETURNING' WHERE id='$id_armada'");
-        
+        // Insert Notification
+        $notif_judul = "Bongkar Muat Selesai";
+        $notif_pesan = "Driver $nama_driver telah menyelesaikan pengiriman (DELIVERED) untuk Surat Jalan #$id_sj dan sedang dalam perjalanan pulang.";
+        if (function_exists('buat_notifikasi')) {
+            buat_notifikasi($conn, 'MANAGER', 0, $notif_judul, $notif_pesan, 'success', 'status_pengiriman.php');
+        }
+
         mysqli_commit($conn);
         echo "<script>alert('Bongkar muat selesai! Armada memulai rute pulang.'); window.location.href='dashboard_driver.php';</script>";
     } catch (Exception $e) {
@@ -85,7 +97,13 @@ if (isset($_POST['tiba_di_gudang'])) {
         mysqli_query($conn, "UPDATE surat_jalan SET status='FINISHED' WHERE id='$id_sj'");
         mysqli_query($conn, "UPDATE driver SET status_kerja='AVAILABLE' WHERE id='$id_supir_asli'");
         mysqli_query($conn, "UPDATE armada SET status='READY' WHERE id='$id_armada'");
-        
+        // Insert Notification
+        $notif_judul = "Armada Telah Kembali";
+        $notif_pesan = "Driver $nama_driver dan Armada telah tiba kembali di Markas. Tugas #$id_sj sepenuhnya selesai.";
+        if (function_exists('buat_notifikasi')) {
+            buat_notifikasi($conn, 'MANAGER', 0, $notif_judul, $notif_pesan, 'success', 'status_pengiriman.php');
+        }
+
         mysqli_commit($conn);
         echo "<script>alert('Tugas selesai sepenuhnya! Armada dan supir kembali stand-by.'); window.location.href='dashboard_driver.php';</script>";
     } catch (Exception $e) {
@@ -159,39 +177,31 @@ while ($row = mysqli_fetch_assoc($q_riwayat)) {
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root {
-            --sidebar-width: 260px;
-            --primary-blue: #1a367e;
+            /* [CLEANED by sidebar-global.css] */--primary-blue: #1a367e;
             --accent-yellow: #ffcc00;
             --bg-light: #f4f7f6;
         }
         body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); overflow-x: hidden; }
         
         /* --- CSS WAJIB LAYOUT --- */
-        #sidebar {
-            width: var(--sidebar-width); position: fixed; top: 0; left: 0; height: 100vh;
-            background: linear-gradient(180deg, var(--primary-blue) 0%, #0d1b3e 100%);
-            z-index: 1000; display: flex; flex-direction: column; transition: all 0.3s;
-        }
-        #main-content {
-            margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); 
-            min-height: 100vh; display: flex; flex-direction: column; transition: all 0.3s;
-        }
-        .top-navbar { background: white; padding: 15px 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 998; }
+        /* [CLEANED by sidebar-global.css] */
+        /* [CLEANED by sidebar-global.css] */
+        /* [CLEANED by sidebar-global.css] */
         
         @media (max-width: 768px) {
-            #sidebar { margin-left: calc(var(--sidebar-width) * -1); }
+            /* [CLEANED by sidebar-global.css] */
             #sidebar.show { margin-left: 0; }
-            #main-content { width: 100%; margin-left: 0; }
-            .top-navbar { padding: 15px; }
+            /* [CLEANED by sidebar-global.css] */
+            /* [CLEANED by sidebar-global.css] */
         }
 
-        .sidebar-header { padding: 25px 20px; background: rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .sidebar-menu { padding: 20px 0; flex-grow: 1; overflow-y: auto; }
-        .menu-label { color: rgba(255,255,255,0.4); font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; padding: 0 25px; margin-bottom: 10px; display: block; }
-        #sidebar ul li a { padding: 12px 25px; color: rgba(255,255,255,0.7); text-decoration: none; display: block; font-size: 0.85rem; transition: 0.3s; }
+        /* [CLEANED by sidebar-global.css] */
+        /* [CLEANED by sidebar-global.css] */
+        /* [CLEANED by sidebar-global.css] */
+        /* [CLEANED by sidebar-global.css] */
         #sidebar ul li a:hover, #sidebar ul li.active > a { color: #fff; background: rgba(255,255,255,0.1); border-left: 4px solid var(--accent-yellow); }
         #sidebar ul li a i { width: 25px; text-align: center; }
-        .sidebar-footer { padding: 20px 25px; background: rgba(0,0,0,0.2); }
+        /* [CLEANED by sidebar-global.css] */
 
         .card-sultan { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #edf2f7; overflow: hidden; margin-top: 20px; }
         .card-header-sultan { background: #f8fafc; padding: 15px 20px; border-bottom: 1px solid #e2e8f0; font-weight: 700; }
