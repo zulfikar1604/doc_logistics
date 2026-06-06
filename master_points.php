@@ -6,13 +6,18 @@ if (!isset($_SESSION['log'])) {
     header('location:index.php');
     exit();
 }
+$role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'MANAGER';
+if ($role == 'DRIVER') {
+    header('location:dashboard_driver.php');
+    exit();
+}
 
 // =============================================
 // PROSES CRUD MASTER POINTS
 // =============================================
 
 // TAMBAH KOTA BARU
-if (isset($_POST['tambah_kota'])) {
+if (isset($_POST['tambah_kota']) && $_SESSION['role'] == 'ADMIN') {
     $nama  = mysqli_real_escape_string($conn, $_POST['nama_kota']);
     $lat   = mysqli_real_escape_string($conn, $_POST['latitude']);
     $lng   = mysqli_real_escape_string($conn, $_POST['longitude']);
@@ -22,7 +27,7 @@ if (isset($_POST['tambah_kota'])) {
 }
 
 // UPDATE KOTA
-if (isset($_POST['update_kota'])) {
+if (isset($_POST['update_kota']) && $_SESSION['role'] == 'ADMIN') {
     $id    = mysqli_real_escape_string($conn, $_POST['id']);
     $nama  = mysqli_real_escape_string($conn, $_POST['nama_kota']);
     $lat   = mysqli_real_escape_string($conn, $_POST['latitude']);
@@ -33,7 +38,7 @@ if (isset($_POST['update_kota'])) {
 }
 
 // TOGGLE AKTIF / NONAKTIF
-if (isset($_GET['toggle'])) {
+if (isset($_GET['toggle']) && $_SESSION['role'] == 'ADMIN') {
     $id = mysqli_real_escape_string($conn, $_GET['toggle']);
     $q  = mysqli_query($conn, "SELECT is_active FROM master_points WHERE id='$id'");
     $d  = mysqli_fetch_assoc($q);
@@ -44,7 +49,7 @@ if (isset($_GET['toggle'])) {
 }
 
 // HAPUS KOTA
-if (isset($_GET['hapus'])) {
+if (isset($_GET['hapus']) && $_SESSION['role'] == 'ADMIN') {
     $id = mysqli_real_escape_string($conn, $_GET['hapus']);
     // Cek apakah kota sedang dipakai di rute
     $cek = mysqli_query($conn, "SELECT COUNT(*) as total FROM route_details WHERE id_master_point='$id'");
@@ -75,6 +80,7 @@ $query_kota = mysqli_query($conn, "SELECT * FROM master_points ORDER BY nama_kot
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>Master Checkpoint - Global Logistics</title>
+    <link rel="icon" type="image/png" href="assets/img/icon-192-nobg.png?v=4">
     
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -97,14 +103,7 @@ $query_kota = mysqli_query($conn, "SELECT * FROM master_points ORDER BY nama_kot
         .header-sultan { background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 20px 25px; }
         .form-control-sultan { border-radius: 10px; border: 1.5px solid #e0e6ed; padding: 10px 15px; background-color: #fcfdfe; font-size: 0.9rem; }
         
-        .table thead th { 
-            background-color: #f1f5f9; border: none; color: #64748b; 
-            font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding: 15px; 
-        }
-        .table tbody td { padding: 15px; vertical-align: middle; border-bottom: 1px solid #f1f5f9; font-size: 0.88rem; color: #334155; }
 
-        .badge-aktif { background: #d1fae5; color: #059669; border: 1px solid #6ee7b7; padding: 5px 12px; border-radius: 8px; font-weight: 700; font-size: 0.72rem; }
-        .badge-nonaktif { background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; padding: 5px 12px; border-radius: 8px; font-weight: 700; font-size: 0.72rem; }
 
         #map-preview { height: 280px; border-radius: 14px; border: 2px solid #e2e8f0; z-index: 1; }
 
@@ -128,9 +127,11 @@ $query_kota = mysqli_query($conn, "SELECT * FROM master_points ORDER BY nama_kot
                     <h3 class="fw-bold mb-1" style="color: #1a367e;">Master Checkpoint (Kota)</h3>
                     <p class="text-muted small mb-0">Kelola data koordinat kota yang digunakan sebagai checkpoint rute pengiriman.</p>
                 </div>
+                <?php if ($role == 'ADMIN'): ?>
                 <button class="btn btn-sultan mt-2 mt-md-0" data-bs-toggle="modal" data-bs-target="#modalTambah">
                     <i class="fas fa-plus me-2"></i> Tambah Kota Baru
                 </button>
+                <?php endif; ?>
             </div>
 
             <div class="row">
@@ -143,15 +144,17 @@ $query_kota = mysqli_query($conn, "SELECT * FROM master_points ORDER BY nama_kot
                                 <?= mysqli_num_rows($query_kota); ?> Kota
                             </span>
                         </div>
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
+                        <div class="table-responsive px-3 pb-3">
+                            <table class="table table-hover mb-0 align-middle">
                                 <thead>
                                     <tr>
                                         <th>#</th>
                                         <th>Nama Kota</th>
                                         <th>Koordinat</th>
                                         <th class="text-center">Status</th>
+                                        <?php if ($role == 'ADMIN'): ?>
                                         <th class="text-center">Aksi</th>
+                                        <?php endif; ?>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -166,16 +169,20 @@ $query_kota = mysqli_query($conn, "SELECT * FROM master_points ORDER BY nama_kot
                                         </td>
                                         <td class="text-center">
                                             <?php if($k['is_active']): ?>
-                                                <span class="badge-aktif"><i class="fas fa-check-circle me-1"></i>Aktif</span>
+                                                <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Aktif</span>
                                             <?php else: ?>
-                                                <span class="badge-nonaktif"><i class="fas fa-times-circle me-1"></i>Nonaktif</span>
+                                                <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>Nonaktif</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="text-center">
-                                            <a href="master_points.php?edit=<?= $k['id']; ?>" class="btn btn-sm btn-light border me-1" title="Edit"><i class="fas fa-edit text-primary"></i></a>
-                                            <a href="master_points.php?toggle=<?= $k['id']; ?>" class="btn btn-sm btn-light border me-1" title="Toggle Aktif" onclick="return confirm('Toggle status kota ini?')"><i class="fas fa-power-off text-warning"></i></a>
-                                            <a href="master_points.php?hapus=<?= $k['id']; ?>" class="btn btn-sm btn-light border" title="Hapus" onclick="return confirm('Yakin hapus kota ini? Pastikan tidak digunakan di rute manapun.')"><i class="fas fa-trash text-danger"></i></a>
+                                        <?php if ($role == 'ADMIN'): ?>
+                                        <td>
+                                            <div class="d-flex justify-content-center gap-2">
+                                                <a href="master_points.php?edit=<?= $k['id']; ?>" class="btn btn-sm btn-light text-primary" title="Edit"><i class="fas fa-edit"></i></a>
+                                                <a href="master_points.php?toggle=<?= $k['id']; ?>" class="btn btn-sm btn-light text-warning" title="Toggle Aktif" onclick="return confirm('Toggle status kota ini?')"><i class="fas fa-power-off"></i></a>
+                                                <a href="master_points.php?hapus=<?= $k['id']; ?>" class="btn btn-sm btn-light text-danger" title="Hapus" onclick="return confirm('Yakin hapus kota ini? Pastikan tidak digunakan di rute manapun.')"><i class="fas fa-trash"></i></a>
+                                            </div>
                                         </td>
+                                        <?php endif; ?>
                                     </tr>
                                     <?php endwhile; ?>
                                 </tbody>

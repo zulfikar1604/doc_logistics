@@ -45,6 +45,7 @@ $query = mysqli_query($conn, $sql);
 <head>
     <meta charset="utf-8">
     <title>Cetak Laporan - PT. Global Logistics</title>
+    <link rel="icon" type="image/png" href="assets/img/icon-192-nobg.png?v=4">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         

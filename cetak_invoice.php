@@ -27,6 +27,7 @@ while ($d = mysqli_fetch_assoc($q_det)) {
 <head>
     <meta charset="UTF-8">
     <title>Cetak Invoice - <?= $inv['no_invoice'] ?></title>
+    <link rel="icon" type="image/png" href="assets/img/icon-192-nobg.png?v=4">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; color: #1e293b; line-height: 1.6; margin: 0; padding: 40px; background: #f8fafc; }

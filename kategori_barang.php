@@ -7,7 +7,7 @@ if (!isset($_SESSION['log'])) {
     exit();
 }
 
-$role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'STAF';
+$role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'MANAGER';
 if ($role == 'DRIVER') {
     header('location:dashboard_driver.php');
     exit();
@@ -15,6 +15,10 @@ if ($role == 'DRIVER') {
 
 // 1. TAMBAH KATEGORI
 if (isset($_POST['tambah_kategori'])) {
+    if ($role != 'ADMIN') {
+        echo "<script>alert('Akses Ditolak! Hanya Admin yang dapat menambah kategori.'); window.location.href='kategori_barang.php';</script>";
+        exit();
+    }
     $nama_kategori = mysqli_real_escape_string($conn, $_POST['nama_kategori']);
     $query = mysqli_query($conn, "INSERT INTO kategori_barang (nama_kategori) VALUES ('$nama_kategori')");
     if($query) {
@@ -26,6 +30,10 @@ if (isset($_POST['tambah_kategori'])) {
 
 // 2. EDIT KATEGORI
 if (isset($_POST['edit_kategori'])) {
+    if ($role != 'ADMIN') {
+        echo "<script>alert('Akses Ditolak! Hanya Admin yang dapat mengedit kategori.'); window.location.href='kategori_barang.php';</script>";
+        exit();
+    }
     $id_kategori = mysqli_real_escape_string($conn, $_POST['id_kategori']);
     $nama_kategori_lama = mysqli_real_escape_string($conn, $_POST['nama_kategori_lama']);
     $nama_kategori = mysqli_real_escape_string($conn, $_POST['nama_kategori']);
@@ -42,7 +50,11 @@ if (isset($_POST['edit_kategori'])) {
 
 // 3. HAPUS KATEGORI
 if (isset($_GET['hapus'])) {
-    $id = $_GET['hapus'];
+    if ($role != 'ADMIN') {
+        echo "<script>alert('Akses Ditolak! Hanya Admin yang dapat menghapus kategori.'); window.location.href='kategori_barang.php';</script>";
+        exit();
+    }
+    $id = mysqli_real_escape_string($conn, $_GET['hapus']);
     mysqli_query($conn, "DELETE FROM kategori_barang WHERE id='$id'");
     echo "<script>alert('Kategori berhasil dihapus!'); window.location.href='kategori_barang.php';</script>";
 }
@@ -54,6 +66,7 @@ if (isset($_GET['hapus'])) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>Data Kategori - Global Logistics</title>
+    <link rel="icon" type="image/png" href="assets/img/icon-192-nobg.png?v=4">
     
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -114,9 +127,11 @@ if (isset($_GET['hapus'])) {
                     <p class="text-muted small mb-0">Kelola master data kategori inventaris barang.</p>
                 </div>
                 
+                <?php if ($role == 'ADMIN'): ?>
                 <button class="btn btn-primary shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalTambah" style="border-radius: 10px; padding: 10px 24px;">
                     <i class="fas fa-plus me-2"></i> Tambah Kategori
                 </button>
+                <?php endif; ?>
             </div>
 
             <div class="table-container">
@@ -126,11 +141,14 @@ if (isset($_GET['hapus'])) {
                             <tr>
                                 <th width="80" class="text-center">No</th>
                                 <th>Nama Kategori</th>
+                                <?php if ($role == 'ADMIN'): ?>
                                 <th class="text-center" width="150">Aksi</th>
+                                <?php endif; ?>
                             </tr>
                         </thead>
                         <tbody>
                             <?php
+                            $modals_html = '';
                             $res = mysqli_query($conn, "SELECT * FROM kategori_barang ORDER BY nama_kategori ASC");
                             $no = 1;
                             while($row = mysqli_fetch_assoc($res)){
@@ -139,6 +157,7 @@ if (isset($_GET['hapus'])) {
                                 <td class="text-center"><?= $no++; ?></td>
                                 <td><span class="fw-bold text-dark" style="letter-spacing: 0.5px;"><?= htmlspecialchars($row['nama_kategori']); ?></span></td>
                                 
+                                <?php if ($role == 'ADMIN'): ?>
                                 <td class="text-center">
                                     <button class="btn btn-action btn-action-edit me-1" data-bs-toggle="modal" data-bs-target="#modalEdit<?= $row['id']; ?>" title="Edit Kategori">
                                         <i class="fas fa-pen-to-square"></i>
@@ -147,8 +166,10 @@ if (isset($_GET['hapus'])) {
                                         <i class="fas fa-trash-can"></i>
                                     </a>
                                 </td>
+                                <?php endif; ?>
                             </tr>
 
+                            <?php if ($role == 'ADMIN'): ob_start(); ?>
                             <div class="modal fade" id="modalEdit<?= $row['id']; ?>" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog modal-dialog-centered">
                                     <div class="modal-content" style="border-radius: 16px; border: none;">
@@ -172,6 +193,7 @@ if (isset($_GET['hapus'])) {
                                     </div>
                                 </div>
                             </div>
+                            <?php $modals_html .= ob_get_clean(); endif; ?>
 
                             <?php } ?>
                         </tbody>
@@ -202,6 +224,8 @@ if (isset($_GET['hapus'])) {
             </div>
         </div>
     </div>
+
+    <?= isset($modals_html) ? $modals_html : ''; ?>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

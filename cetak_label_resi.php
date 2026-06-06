@@ -78,6 +78,7 @@ $total_item = $d_det['total_item'] ?? 0;
 <head>
     <meta charset="UTF-8">
     <title>Label Pengiriman - <?= htmlspecialchars($sj['no_sj']) ?></title>
+    <link rel="icon" type="image/png" href="assets/img/icon-192-nobg.png?v=4">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>

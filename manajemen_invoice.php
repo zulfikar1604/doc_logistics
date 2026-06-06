@@ -6,19 +6,45 @@ if (!isset($_SESSION['log'])) {
     header('location:index.php');
     exit();
 }
+$role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'MANAGER';
+if ($role == 'DRIVER') {
+    header('location:dashboard_driver.php');
+    exit();
+}
 
 // Logika Hapus Invoice
 if (isset($_GET['hapus'])) {
-    $id = $_GET['hapus'];
+    if ($role != 'ADMIN') {
+        echo "<script>alert('Akses Ditolak! Hanya Admin yang dapat menghapus invoice.'); window.location.href='manajemen_invoice.php';</script>";
+        exit();
+    }
+    $id = (int)$_GET['hapus'];
     mysqli_query($conn, "DELETE FROM invoice WHERE id='$id'");
     echo "<script>window.location.href='manajemen_invoice.php';</script>";
+    exit();
 }
 
 // Logika Tandai Lunas
 if (isset($_GET['lunas'])) {
-    $id = mysqli_real_escape_string($conn, $_GET['lunas']);
-    mysqli_query($conn, "UPDATE invoice SET status='PAID' WHERE id='$id'");
+    $id = (int)$_GET['lunas'];
+    
+    $q_check = mysqli_query($conn, "SELECT status, no_invoice FROM invoice WHERE id='$id'");
+    if ($q_check && mysqli_num_rows($q_check) > 0) {
+        $d_check = mysqli_fetch_assoc($q_check);
+        if ($d_check['status'] == 'PAID') {
+            echo "<script>alert('Error: Invoice ini sudah lunas sebelumnya!'); window.location.href='manajemen_invoice.php';</script>";
+            exit();
+        }
+        $no_inv = $d_check['no_invoice'];
+        
+        mysqli_query($conn, "UPDATE invoice SET status='PAID' WHERE id='$id'");
+        if (function_exists('buat_notifikasi')) {
+            buat_notifikasi($conn, 'MANAGER,ADMIN', 0, "Pembayaran Diterima", "Invoice $no_inv telah dilunasi.", "success", "manajemen_invoice.php");
+        }
+    }
+    
     echo "<script>alert('Invoice berhasil ditandai LUNAS!'); window.location.href='manajemen_invoice.php';</script>";
+    exit();
 }
 ?>
 <!DOCTYPE html>
@@ -27,6 +53,7 @@ if (isset($_GET['lunas'])) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>Manajemen Invoice - Global Logistics</title>
+    <link rel="icon" type="image/png" href="assets/img/icon-192-nobg.png?v=4">
     
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -59,9 +86,11 @@ if (isset($_GET['lunas'])) {
                     <h3 class="fw-bold mb-1" style="color: #1a367e;">Arsip Invoice</h3>
                     <p class="text-muted small mb-0">Daftar seluruh tagihan pengiriman klien.</p>
                 </div>
+                <?php if ($role == 'ADMIN'): ?>
                 <a href="invoice_pengiriman.php" class="btn btn-primary shadow-sm fw-bold" style="border-radius: 10px;">
                     <i class="fas fa-plus me-2"></i> Buat Invoice Baru
                 </a>
+                <?php endif; ?>
             </div>
 
             <div class="table-container">
@@ -95,7 +124,9 @@ if (isset($_GET['lunas'])) {
                                     <a href="manajemen_invoice.php?lunas=<?= $row['id']; ?>" class="btn btn-sm btn-success shadow-sm me-1" title="Tandai Lunas" onclick="return confirm('Tandai tagihan ini sebagai LUNAS?')"><i class="fas fa-check"></i></a>
                                     <?php endif; ?>
                                     <a href="cetak_invoice.php?id=<?= $row['id']; ?>" target="_blank" class="btn btn-sm btn-light border text-primary shadow-sm me-1" title="Lihat/Cetak PDF"><i class="fas fa-print"></i></a>
-                                    <a href="manajemen_invoice.php?hapus=<?= $row['id']; ?>" class="btn btn-sm btn-light border text-danger shadow-sm" onclick="return confirm('Hapus invoice ini?')"><i class="fas fa-trash"></i></a>
+                                    <?php if ($role == 'ADMIN'): ?>
+                                    <a href="manajemen_invoice.php?hapus=<?= $row['id']; ?>" class="btn btn-sm btn-light border text-danger shadow-sm" onclick="return confirm('Hapus invoice ini?')" title="Hapus"><i class="fas fa-trash"></i></a>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                             <?php } ?>

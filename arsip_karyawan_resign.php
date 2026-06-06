@@ -2,16 +2,10 @@
 session_start();
 require 'koneksi.php'; 
 
-if (!isset($_SESSION['log'])) {
+if (!isset($_SESSION['log']) || ($_SESSION['role'] != 'ADMIN' && $_SESSION['role'] != 'MANAGER')) {
     header('location:index.php');
     exit();
 }
-
-// Hanya manager yang bisa akses (opsional, disesuaikan dengan kebutuhan)
-// if ($_SESSION['role'] != 'manager') {
-//     echo "<script>alert('Akses Ditolak!'); window.history.back();</script>";
-//     exit();
-// }
 
 ?>
 <!DOCTYPE html>
@@ -20,6 +14,7 @@ if (!isset($_SESSION['log'])) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>Riwayat Karyawan Resign - Global Logistics</title>
+    <link rel="icon" type="image/png" href="assets/img/icon-192-nobg.png?v=4">
     
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -53,9 +48,8 @@ if (!isset($_SESSION['log'])) {
 
         .badge-role { padding: 6px 12px; border-radius: 8px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; border: 1px solid transparent;}
         .role-admin { background: #fee2e2; color: #991b1b; border-color: #fca5a5;}
-        .role-staff { background: #e0f2fe; color: #0369a1; border-color: #bae6fd;}
+        .role-manager { background: #e0f2fe; color: #0369a1; border-color: #bae6fd;}
         .role-driver { background: #fef3c7; color: #92400e; border-color: #fde68a;}
-        .role-user { background: #f3f4f6; color: #475569; border-color: #cbd5e1;}
 
         .btn-action { border-radius: 10px; width: 35px; height: 35px; display: inline-flex; align-items: center; justify-content: center; transition: 0.2s; }
         .btn-action:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
@@ -101,7 +95,7 @@ if (!isset($_SESSION['log'])) {
 
                                 // Penentuan Class Badge Role
                                 $role = strtolower($row['role']);
-                                $role_class = 'role-user';
+                                $role_class = 'role-driver';
                                 if ($role == 'manager') $role_class = 'role-manager';
                                 if ($role == 'admin') $role_class = 'role-admin';
                                 if ($role == 'driver') $role_class = 'role-driver';

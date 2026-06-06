@@ -8,8 +8,7 @@ if (!isset($_SESSION['log'])) {
     exit();
 }
 
-// Tangkap Role User
-$role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'STAF';
+$role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'MANAGER';
 
 // --- FETCH SEMUA DATA STATISTIK UTAMA ---
 
@@ -57,6 +56,11 @@ while ($r = mysqli_fetch_assoc($q_slow)) { $slow_moving[] = $r; }
 $q_kritis = mysqli_query($conn, "SELECT nama_barang, stok FROM stok_barang WHERE stok <= 10 ORDER BY stok ASC LIMIT 5");
 $barang_kritis = [];
 while ($r = mysqli_fetch_assoc($q_kritis)) { $barang_kritis[] = $r; }
+
+// 8. Penerimaan Terkini
+$q_penerimaan = mysqli_query($conn, "SELECT * FROM penerimaan_barang ORDER BY created_at DESC LIMIT 5");
+$penerimaan_terbaru = [];
+while ($r = mysqli_fetch_assoc($q_penerimaan)) { $penerimaan_terbaru[] = $r; }
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -64,6 +68,7 @@ while ($r = mysqli_fetch_assoc($q_kritis)) { $barang_kritis[] = $r; }
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Elektronik Global | Global Logistics</title>
+    <link rel="icon" type="image/png" href="assets/img/icon-192-nobg.png?v=4">
     
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -101,10 +106,20 @@ while ($r = mysqli_fetch_assoc($q_kritis)) { $barang_kritis[] = $r; }
             background: #ffffff; border-radius: 18px; padding: 22px;
             border: 1px solid rgba(0,0,0,0.04);
             box-shadow: 0 4px 20px rgba(0,0,0,0.04);
-            transition: transform 0.25s, box-shadow 0.25s;
+            transition: transform 0.3s cubic-bezier(0.22,1,0.36,1), box-shadow 0.3s cubic-bezier(0.22,1,0.36,1);
             height: 100%; position: relative; overflow: hidden;
+            /* Entrance animation */
+            opacity: 0;
+            transform: translateY(28px);
         }
-        .modern-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.09); }
+        .modern-card.card-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .modern-card:hover {
+            transform: translateY(-6px) scale(1.012);
+            box-shadow: 0 20px 45px rgba(0,0,0,0.11);
+        }
 
         .border-left-success { border-left: 5px solid #10b981 !important; }
         .border-left-primary  { border-left: 5px solid #3b82f6 !important; }
@@ -290,59 +305,90 @@ while ($r = mysqli_fetch_assoc($q_kritis)) { $barang_kritis[] = $r; }
             </div>
 
             <!-- ROW 3: RECENT ACTIVITIES -->
-            <div class="modern-card mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="fw-bold mb-0"><i class="fas fa-history text-secondary me-2"></i> Aktivitas Pengiriman Terkini</h5>
-                    <a href="manajemen_dokumen.php" class="btn btn-light border btn-sm fw-bold rounded-pill px-3">Arsip Lengkap</a>
+            <div class="row g-4 mb-4">
+                <!-- Pengiriman Terkini -->
+                <div class="col-lg-6">
+                    <div class="modern-card">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0"><i class="fas fa-truck-moving text-primary me-2"></i> Pengiriman Terkini</h6>
+                            <a href="status_pengiriman.php" class="btn btn-light border btn-sm fw-bold rounded-pill px-3" style="font-size:0.75rem;">Lihat Semua</a>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover mb-0">
+                                <tbody>
+                                    <?php
+                                    $sql = "SELECT sj.*, l.nama_lengkap as nama_driver, a.nopol, a.tipe 
+                                            FROM surat_jalan sj 
+                                            JOIN driver d ON sj.id_driver = d.id 
+                                            JOIN login l ON d.id_login = l.id 
+                                            JOIN armada a ON sj.id_armada = a.id
+                                            ORDER BY sj.id DESC LIMIT 5";
+                                    $query = mysqli_query($conn, $sql);
+                                    if(mysqli_num_rows($query) == 0): ?>
+                                        <tr><td class="text-center text-muted py-4 small">Belum ada pengiriman.</td></tr>
+                                    <?php else: while($row = mysqli_fetch_assoc($query)): ?>
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold text-primary" style="font-size: 0.85rem;"><?= $row['no_sj']; ?></div>
+                                            <small class="text-muted" style="font-size: 0.75rem;"><i class="far fa-calendar-alt me-1"></i> <?= date('d M', strtotime($row['tgl_kirim'])); ?></small>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold text-dark" style="font-size: 0.8rem;"><i class="fas fa-user-circle text-muted me-1"></i><?= $row['nama_driver']; ?></div>
+                                            <small class="text-muted" style="font-size: 0.7rem;"><i class="fas fa-map-marker-alt text-danger me-1"></i><?= $row['kota_tujuan']; ?></small>
+                                        </td>
+                                        <td class="text-end">
+                                            <?php 
+                                                $st = $row['status'];
+                                                if ($st == 'ON TRIP') { $bc = 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25'; }
+                                                elseif ($st == 'RETURNING') { $bc = 'bg-warning bg-opacity-25 text-dark border border-warning border-opacity-50'; }
+                                                elseif ($st == 'DELIVERED') { $bc = 'bg-success bg-opacity-10 text-success border border-success border-opacity-25'; }
+                                                elseif ($st == 'FINISHED') { $bc = 'bg-success text-white shadow-sm'; }
+                                                else { $bc = 'bg-secondary bg-opacity-10 text-secondary border'; }
+                                            ?>
+                                            <span class="badge <?= $bc ?>" style="font-size:0.65rem; padding: 4px 8px;">
+                                                <?= $st ?: 'N/A'; ?>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <?php endwhile; endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-                <div class="table-responsive">
-                    <table class="table align-middle table-hover">
-                        <thead class="text-muted small">
-                            <tr>
-                                <th>NOMOR SJ & TANGGAL</th>
-                                <th>DRIVER & UNIT</th>
-                                <th>TUJUAN</th>
-                                <th>STATUS TERAKHIR</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            $sql = "SELECT sj.*, l.nama_lengkap as nama_driver, a.nopol, a.tipe 
-                                    FROM surat_jalan sj 
-                                    JOIN driver d ON sj.id_driver = d.id 
-                                    JOIN login l ON d.id_login = l.id 
-                                    JOIN armada a ON sj.id_armada = a.id
-                                    ORDER BY sj.id DESC LIMIT 6";
-                            $query = mysqli_query($conn, $sql);
-                            while($row = mysqli_fetch_assoc($query)){
-                            ?>
-                            <tr>
-                                <td>
-                                    <div class="fw-bold text-primary" style="font-size: 0.9rem; letter-spacing: 0.5px;"><?= $row['no_sj']; ?></div>
-                                    <small class="text-muted" style="font-size: 0.75rem;"><i class="far fa-calendar-alt me-1"></i><?= date('d M Y', strtotime($row['tgl_kirim'])); ?></small>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark" style="font-size: 0.85rem;"><i class="fas fa-user-circle text-muted me-1"></i><?= $row['nama_driver']; ?></div>
-                                    <small class="text-muted" style="font-size: 0.75rem;"><i class="fas fa-truck text-secondary me-1"></i><?= $row['nopol']; ?> (<?= $row['tipe']; ?>)</small>
-                                </td>
-                                <td style="font-size: 0.85rem; font-weight: 500;"><i class="fas fa-map-marker-alt text-danger me-1"></i><?= $row['kota_tujuan']; ?></td>
-                                <td>
-                                    <?php 
-                                        $st = $row['status'];
-                                        if ($st == 'ON TRIP') { $bc = 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25'; }
-                                        elseif ($st == 'RETURNING') { $bc = 'bg-warning bg-opacity-25 text-dark border border-warning border-opacity-50'; }
-                                        elseif ($st == 'DELIVERED') { $bc = 'bg-success bg-opacity-10 text-success border border-success border-opacity-25'; }
-                                        elseif ($st == 'FINISHED') { $bc = 'bg-success text-white shadow-sm'; }
-                                        else { $bc = 'bg-secondary bg-opacity-10 text-secondary border'; }
-                                    ?>
-                                    <span class="badge badge-luxe <?= $bc ?>">
-                                        <?= $st ?: 'N/A'; ?>
-                                    </span>
-                                </td>
-                            </tr>
-                            <?php } ?>
-                        </tbody>
-                    </table>
+
+                <!-- Penerimaan Terkini -->
+                <div class="col-lg-6">
+                    <div class="modern-card">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0"><i class="fas fa-dolly text-success me-2"></i> Penerimaan Terkini</h6>
+                            <a href="penerimaan_barang.php" class="btn btn-light border btn-sm fw-bold rounded-pill px-3" style="font-size:0.75rem;">Lihat Semua</a>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover mb-0">
+                                <tbody>
+                                    <?php if(empty($penerimaan_terbaru)): ?>
+                                        <tr><td class="text-center text-muted py-4 small">Belum ada aktivitas penerimaan.</td></tr>
+                                    <?php else: foreach($penerimaan_terbaru as $pt): ?>
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold text-dark" style="font-size: 0.85rem;"><?= htmlspecialchars($pt['nama_barang']); ?></div>
+                                            <small class="text-muted" style="font-size: 0.75rem;"><i class="fas fa-barcode me-1"></i> <?= htmlspecialchars($pt['sku']); ?></small>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="fw-bold text-success" style="font-size: 0.9rem;">+<?= $pt['jumlah']; ?></div>
+                                            <small class="text-muted" style="font-size: 0.7rem;"><?= htmlspecialchars($pt['satuan']); ?></small>
+                                        </td>
+                                        <td class="text-end">
+                                            <small class="text-muted d-block mb-1" style="font-size: 0.7rem;"><i class="far fa-clock me-1"></i><?= date('d M H:i', strtotime($pt['created_at'])); ?></small>
+                                            <span class="badge bg-primary bg-opacity-10 text-primary" style="font-size:0.65rem; padding: 4px 8px;"><?= htmlspecialchars($pt['diterima_oleh']); ?></span>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -479,6 +525,19 @@ while ($r = mysqli_fetch_assoc($q_kritis)) { $barang_kritis[] = $r; }
         document.getElementById('sidebarToggle')?.addEventListener('click', function() {
             document.getElementById('sidebar').classList.toggle('show');
         });
+
+        // =====================
+        // CARD ENTRANCE ANIMATION
+        // =====================
+        (function() {
+            const cards = document.querySelectorAll('.modern-card');
+            cards.forEach(function(card, i) {
+                setTimeout(function() {
+                    card.style.transition = 'opacity 0.5s cubic-bezier(0.22,1,0.36,1), transform 0.5s cubic-bezier(0.22,1,0.36,1), box-shadow 0.3s cubic-bezier(0.22,1,0.36,1)';
+                    card.classList.add('card-visible');
+                }, 80 + i * 60); // stagger each card by 60ms
+            });
+        })();
     </script>
 </body>
 </html>

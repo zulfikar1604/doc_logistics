@@ -6,49 +6,88 @@ if (!isset($_SESSION['log'])) {
     header('location:index.php');
     exit();
 }
-
-// Tangkap Role User (Jika Driver, fitur ubah data disembunyikan)
-$role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'STAF';
+$role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'MANAGER';
+if ($role == 'DRIVER') {
+    header('location:dashboard_driver.php');
+    exit();
+}
 
 // =========================================================================
 // 1. LOGIKA TAMBAH UNIT BARU (Hanya dieksekusi jika bukan Driver)
 // =========================================================================
-if (isset($_POST['tambah_armada']) && $role != 'DRIVER') {
+if (isset($_POST['tambah_armada']) && $role == 'ADMIN') {
     $nopol     = mysqli_real_escape_string($conn, $_POST['nopol']);
     $tipe      = mysqli_real_escape_string($conn, $_POST['tipe']);
     $kategori_kendaraan = mysqli_real_escape_string($conn, $_POST['kategori_kendaraan']);
     $kapasitas = mysqli_real_escape_string($conn, $_POST['kapasitas']);
+    $odometer  = (int)($_POST['odometer'] ?? 0);
+    $odometer_terakhir_servis = (int)($_POST['odometer_terakhir_servis'] ?? 0);
     
-    $query = mysqli_query($conn, "INSERT INTO armada (nopol, tipe, kategori_kendaraan, kapasitas, status) VALUES ('$nopol', '$tipe', '$kategori_kendaraan', '$kapasitas', 'READY')");
+    $status_awal = 'READY';
+    $pesan_tambahan = '';
+    if (($odometer - $odometer_terakhir_servis) >= 10000) {
+        $status_awal = 'MAINTENANCE';
+        $pesan_tambahan = '\\n\\nCatatan: Status diubah menjadi MAINTENANCE karena butuh servis rutin (>10.000 KM).';
+    }
+    
+    $query = mysqli_query($conn, "INSERT INTO armada (nopol, tipe, kategori_kendaraan, kapasitas, status, odometer, odometer_terakhir_servis) VALUES ('$nopol', '$tipe', '$kategori_kendaraan', '$kapasitas', '$status_awal', '$odometer', '$odometer_terakhir_servis')");
     if($query) {
-        echo "<script>alert('Armada berhasil ditambahkan!'); window.location.href='data_armada.php';</script>";
+        echo "<script>alert('Armada berhasil ditambahkan!$pesan_tambahan'); window.location.href='data_armada.php';</script>";
     }
 }
 
 // =========================================================================
 // 2. LOGIKA EDIT UNIT (Hanya dieksekusi jika bukan Driver)
 // =========================================================================
-if (isset($_POST['update_armada']) && $role != 'DRIVER') {
+if (isset($_POST['update_armada']) && $role == 'ADMIN') {
     $id_armada = $_POST['id_armada'];
     $nopol     = mysqli_real_escape_string($conn, $_POST['nopol']);
     $tipe      = mysqli_real_escape_string($conn, $_POST['tipe']);
     $kategori_kendaraan = mysqli_real_escape_string($conn, $_POST['kategori_kendaraan']);
     $kapasitas = mysqli_real_escape_string($conn, $_POST['kapasitas']);
     $status    = mysqli_real_escape_string($conn, $_POST['status']);
+    $odometer  = (int)$_POST['odometer'];
+    $odometer_terakhir_servis = (int)$_POST['odometer_terakhir_servis'];
 
-    $update = mysqli_query($conn, "UPDATE armada SET nopol='$nopol', tipe='$tipe', kategori_kendaraan='$kategori_kendaraan', kapasitas='$kapasitas', status='$status' WHERE id='$id_armada'");
+    $pesan_tambahan = '';
+    if ($status == 'READY' && ($odometer - $odometer_terakhir_servis) >= 10000) {
+        $status = 'MAINTENANCE';
+        $pesan_tambahan = '\\n\\nCatatan: Status otomatis dialihkan ke MAINTENANCE karena odometer menunjukkan armada butuh servis rutin.';
+    }
+
+    $update = mysqli_query($conn, "UPDATE armada SET nopol='$nopol', tipe='$tipe', kategori_kendaraan='$kategori_kendaraan', kapasitas='$kapasitas', status='$status', odometer='$odometer', odometer_terakhir_servis='$odometer_terakhir_servis' WHERE id='$id_armada'");
     if ($update) {
-        echo "<script>alert('Data armada berhasil diupdate!'); window.location.href='data_armada.php';</script>";
+        echo "<script>alert('Data armada berhasil diupdate!$pesan_tambahan'); window.location.href='data_armada.php';</script>";
     }
 }
 
 // =========================================================================
 // 3. LOGIKA HAPUS UNIT (Hanya dieksekusi jika bukan Driver)
 // =========================================================================
-if (isset($_GET['hapus']) && $role != 'DRIVER') {
-    $id = $_GET['hapus'];
+if (isset($_GET['hapus']) && $role == 'ADMIN') {
+    $id = (int)$_GET['hapus'];
+    
+    // Check if armada has active shipments
+    $q_active = mysqli_query($conn, "SELECT COUNT(*) as active_count FROM surat_jalan WHERE id_armada='$id' AND status IN ('ON TRIP', 'RETURNING', 'DELIVERED', 'DRAFT')");
+    $d_active = mysqli_fetch_assoc($q_active);
+    if ($d_active['active_count'] > 0) {
+        echo "<script>alert('Gagal! Armada ini masih terikat dengan surat jalan aktif atau belum selesai. Selesaikan/batalkan surat jalan terlebih dahulu.'); window.location.href='data_armada.php';</script>";
+        exit();
+    }
+    
     mysqli_query($conn, "DELETE FROM armada WHERE id='$id'");
-    echo "<script>window.location.href='data_armada.php';</script>";
+    echo "<script>alert('Data armada berhasil dihapus!'); window.location.href='data_armada.php';</script>";
+    exit();
+}
+
+// =========================================================================
+// 4. LOGIKA CATAT SERVIS (Hanya dieksekusi jika bukan Driver)
+// =========================================================================
+if (isset($_GET['catat_servis']) && $role == 'ADMIN') {
+    $id = (int)$_GET['catat_servis'];
+    mysqli_query($conn, "UPDATE armada SET odometer_terakhir_servis = odometer WHERE id='$id'");
+    echo "<script>alert('Servis berhasil dicatat! Odometer terakhir servis disinkronisasikan.'); window.location.href='data_armada.php';</script>";
+    exit();
 }
 ?>
 <!DOCTYPE html>
@@ -57,6 +96,7 @@ if (isset($_GET['hapus']) && $role != 'DRIVER') {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>Manajemen Armada - Global Logistics</title>
+    <link rel="icon" type="image/png" href="assets/img/icon-192-nobg.png?v=4">
     
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -136,7 +176,7 @@ if (isset($_GET['hapus']) && $role != 'DRIVER') {
                     <p class="text-muted small mb-0">List unit kendaraan operasional yang terdaftar di sistem.</p>
                 </div>
                 
-                <?php if($role != 'DRIVER'): ?>
+                <?php if($role == 'ADMIN'): ?>
                 <button class="btn btn-primary shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalTambah" style="border-radius: 10px; padding: 10px 24px;">
                     <i class="fas fa-plus me-2"></i> Tambah Unit
                 </button>
@@ -153,14 +193,17 @@ if (isset($_GET['hapus']) && $role != 'DRIVER') {
                                 <th>Tipe Kendaraan</th>
                                 <th>Kategori Kendaraan</th>
                                 <th>Kapasitas</th>
+                                <th class="text-end">Odometer</th>
+                                <th class="text-end">Sejak Servis</th>
                                 <th>Status</th>
-                                <?php if($role != 'DRIVER'): ?>
+                                <?php if($role == 'ADMIN'): ?>
                                 <th class="text-center">Aksi</th>
                                 <?php endif; ?>
                             </tr>
                         </thead>
                         <tbody>
                             <?php
+                            $modals_html = '';
                             $res = mysqli_query($conn, "SELECT * FROM armada ORDER BY id DESC");
                             while($row = mysqli_fetch_assoc($res)){
                                 $st = $row['status'];
@@ -179,6 +222,11 @@ if (isset($_GET['hapus']) && $role != 'DRIVER') {
                                     $badge = 'status-ready';
                                     $icon = 'fa-truck-moving'; 
                                 }
+                                
+                                $odo = (int)$row['odometer'];
+                                $odo_servis = (int)$row['odometer_terakhir_servis'];
+                                $selisih_odo = $odo - $odo_servis;
+                                $needs_service = ($selisih_odo >= 10000);
                             ?>
                             <tr>
                                 <td>
@@ -190,13 +238,25 @@ if (isset($_GET['hapus']) && $role != 'DRIVER') {
                                 <td><?= $row['tipe']; ?></td>
                                 <td><span class="badge bg-secondary"><?= isset($row['kategori_kendaraan']) ? $row['kategori_kendaraan'] : '-'; ?></span></td>
                                 <td><i class="fas fa-weight-hanging me-2 text-muted"></i><?= $row['kapasitas']; ?></td>
+                                <td class="text-end fw-bold text-dark"><?= number_format($odo, 0, ',', '.'); ?> km</td>
+                                <td class="text-end">
+                                    <span class="fw-bold <?= $needs_service ? 'text-danger' : 'text-muted'; ?>">
+                                        <?= number_format($selisih_odo, 0, ',', '.'); ?> km
+                                    </span>
+                                    <?php if ($needs_service): ?>
+                                        <span class="badge bg-danger ms-1 text-white" style="font-size: 0.68rem; padding: 3px 6px; border-radius: 6px;"><i class="fas fa-exclamation-triangle me-1"></i>Butuh Servis</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><span class="badge-status <?= $badge; ?>"><?= $st; ?></span></td>
                                 
-                                <?php if($role != 'DRIVER'): ?>
+                                <?php if($role == 'ADMIN'): ?>
                                 <td class="text-center">
                                     <button class="btn btn-action btn-action-edit me-1" data-bs-toggle="modal" data-bs-target="#modalEdit<?= $row['id']; ?>" title="Edit Unit">
                                         <i class="fas fa-pen-to-square"></i>
                                     </button>
+                                    <a href="data_armada.php?catat_servis=<?= $row['id']; ?>" class="btn btn-action text-success border-success me-1" onclick="return confirm('Catat bahwa unit ini telah diservis? Ini akan me-reset indikator servis truk.')" title="Catat Servis Selesai">
+                                        <i class="fas fa-wrench"></i>
+                                    </a>
                                     <a href="data_armada.php?hapus=<?= $row['id']; ?>" class="btn btn-action btn-action-delete" onclick="return confirm('Hapus unit ini?')" title="Hapus Unit">
                                         <i class="fas fa-trash-can"></i>
                                     </a>
@@ -204,7 +264,7 @@ if (isset($_GET['hapus']) && $role != 'DRIVER') {
                                 <?php endif; ?>
                             </tr>
 
-                            <?php if($role != 'DRIVER'): ?>
+                            <?php if($role == 'ADMIN'): ob_start(); ?>
                             <div class="modal fade" id="modalEdit<?= $row['id']; ?>" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog modal-dialog-centered">
                                     <div class="modal-content" style="border-radius: 16px; border: none;">
@@ -248,6 +308,16 @@ if (isset($_GET['hapus']) && $role != 'DRIVER') {
                                                         </select>
                                                     <?php endif; ?>
                                                 </div>
+                                                <div class="row">
+                                                    <div class="col-6 mb-3">
+                                                        <label class="small fw-bold text-muted mb-2">Odometer Saat Ini</label>
+                                                        <input type="number" name="odometer" class="form-control" style="border-radius: 10px;" value="<?= (int)($row['odometer'] ?? 0); ?>" required min="0">
+                                                    </div>
+                                                    <div class="col-6 mb-3">
+                                                        <label class="small fw-bold text-muted mb-2">Terakhir Servis</label>
+                                                        <input type="number" name="odometer_terakhir_servis" class="form-control" style="border-radius: 10px;" value="<?= (int)($row['odometer_terakhir_servis'] ?? 0); ?>" required min="0">
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div class="modal-footer border-0 pb-4 px-4">
                                                 <button type="submit" name="update_armada" class="btn btn-primary w-100 fw-bold" style="border-radius: 10px; padding: 12px;">Update Data</button>
@@ -256,7 +326,7 @@ if (isset($_GET['hapus']) && $role != 'DRIVER') {
                                     </div>
                                 </div>
                             </div>
-                            <?php endif; ?>
+                            <?php $modals_html .= ob_get_clean(); endif; ?>
 
                             <?php } ?>
                         </tbody>
@@ -266,7 +336,7 @@ if (isset($_GET['hapus']) && $role != 'DRIVER') {
         </div>
     </div>
 
-    <?php if($role != 'DRIVER'): ?>
+    <?php if($role == 'ADMIN'): ?>
     <div class="modal fade" id="modalTambah" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content" style="border-radius: 16px; border: none;">
@@ -298,6 +368,16 @@ if (isset($_GET['hapus']) && $role != 'DRIVER') {
                             <label class="small fw-bold text-muted mb-2">Kapasitas Muatan</label>
                             <input type="text" name="kapasitas" class="form-control" placeholder="20 Ton" required style="border-radius: 10px;">
                         </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="small fw-bold text-muted mb-2">Odometer Awal</label>
+                                <input type="number" name="odometer" class="form-control" placeholder="0" value="0" required style="border-radius: 10px;" min="0">
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="small fw-bold text-muted mb-2">Terakhir Servis</label>
+                                <input type="number" name="odometer_terakhir_servis" class="form-control" placeholder="0" value="0" required style="border-radius: 10px;" min="0">
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer border-0 pb-4 px-4">
                         <button type="submit" name="tambah_armada" class="btn btn-primary w-100 fw-bold" style="border-radius: 10px; padding: 12px;">Simpan Armada</button>
@@ -307,6 +387,8 @@ if (isset($_GET['hapus']) && $role != 'DRIVER') {
         </div>
     </div>
     <?php endif; ?>
+
+    <?= isset($modals_html) ? $modals_html : ''; ?>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

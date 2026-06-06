@@ -50,7 +50,7 @@ if ($action == 'fetch') {
     $total_unread = $count_row['total'];
 
     // --- TAMBAHAN: SYSTEM ALERTS (Dynamic State-based Notifications) ---
-    // Tampilkan jika user adalah STAFF atau MANAGER (Bukan Driver)
+    // Tampilkan jika user adalah ADMIN atau MANAGER (Bukan Driver)
     if ($role != 'DRIVER') {
         // 1. Cek Surat Jalan DRAFT
         $q_draft = mysqli_query($conn, "SELECT COUNT(id) as total FROM surat_jalan WHERE status='DRAFT'");

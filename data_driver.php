@@ -7,9 +7,14 @@ if (!isset($_SESSION['log'])) {
     header('location:index.php');
     exit();
 }
+$role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'DRIVER';
+if ($role == 'DRIVER') {
+    header('location:dashboard_driver.php');
+    exit();
+}
 
 // 1. LOGIKA TAMBAH DRIVER (Menangkap data dari Modal Tambah)
-if (isset($_POST['simpan_driver'])) {
+if (isset($_POST['simpan_driver']) && $_SESSION['role'] == 'ADMIN') {
     $id_login    = mysqli_real_escape_string($conn, $_POST['id_login']);
     $kode_driver = mysqli_real_escape_string($conn, $_POST['kode_driver']);
     $lisensi_sim = mysqli_real_escape_string($conn, $_POST['lisensi_sim']);
@@ -26,7 +31,7 @@ if (isset($_POST['simpan_driver'])) {
 }
 
 // 2. LOGIKA EDIT DRIVER (Menangkap data dari Modal Edit)
-if (isset($_POST['update_driver'])) {
+if (isset($_POST['update_driver']) && $_SESSION['role'] == 'ADMIN') {
     $id_driver    = mysqli_real_escape_string($conn, $_POST['id_driver']);
     $kode_driver  = mysqli_real_escape_string($conn, $_POST['kode_driver']);
     $lisensi_sim  = mysqli_real_escape_string($conn, $_POST['lisensi_sim']);
@@ -46,11 +51,21 @@ if (isset($_POST['update_driver'])) {
 }
 
 // 3. LOGIKA HAPUS DRIVER
-if (isset($_GET['hapus'])) {
-    $id_driver = $_GET['hapus'];
+if (isset($_GET['hapus']) && $_SESSION['role'] == 'ADMIN') {
+    $id_driver = (int)$_GET['hapus'];
+    
+    // Check if driver has active shipments
+    $q_active = mysqli_query($conn, "SELECT COUNT(*) as active_count FROM surat_jalan WHERE id_driver='$id_driver' AND status IN ('ON TRIP', 'RETURNING', 'DELIVERED', 'DRAFT')");
+    $d_active = mysqli_fetch_assoc($q_active);
+    if ($d_active['active_count'] > 0) {
+        echo "<script>alert('Gagal! Driver ini masih terikat dengan surat jalan aktif atau belum selesai. Selesaikan/batalkan surat jalan terlebih dahulu.'); window.location.href='data_driver.php';</script>";
+        exit();
+    }
+    
     $hapus = mysqli_query($conn, "DELETE FROM driver WHERE id='$id_driver'");
     if ($hapus) {
         echo "<script>alert('Data operasional driver berhasil dihapus!'); window.location.href='data_driver.php';</script>";
+        exit();
     }
 }
 ?>
@@ -60,6 +75,7 @@ if (isset($_GET['hapus'])) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>Data Driver - Global Logistics</title>
+    <link rel="icon" type="image/png" href="assets/img/icon-192-nobg.png?v=4">
     
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -113,9 +129,11 @@ if (isset($_GET['hapus'])) {
                     <h3 class="fw-bold mb-1" style="color: #1a367e;">Database Driver</h3>
                     <p class="text-muted small mb-0">Kelola data operasional personil pengiriman PT Global Logistics.</p>
                 </div>
+                <?php if ($_SESSION['role'] == 'ADMIN'): ?>
                 <button class="btn btn-primary shadow-sm mt-3 mt-md-0 fw-medium" style="border-radius: 10px; padding: 10px 20px;" data-bs-toggle="modal" data-bs-target="#modalTambahDriver">
                     <i class="fas fa-id-badge me-2"></i> Lengkapi Data Driver
                 </button>
+                <?php endif; ?>
             </div>
 
             <div class="driver-container">
@@ -133,6 +151,7 @@ if (isset($_GET['hapus'])) {
                         </thead>
                         <tbody>
                             <?php
+                            $modals_html = '';
                             $query_driver = mysqli_query($conn, "
                                 SELECT driver.*, login.nama_lengkap, login.email 
                                 FROM driver 
@@ -180,16 +199,21 @@ if (isset($_GET['hapus'])) {
                                 <td class="fw-medium text-secondary"><?php echo $row['no_telepon']; ?></td>
                                 <td><span class="status-badge <?php echo $badge_status; ?>"><?php echo $status; ?></span></td>
                                 <td class="text-center">
+                                    <?php if ($_SESSION['role'] == 'ADMIN'): ?>
                                     <button class="btn btn-sm btn-light border text-primary shadow-sm" title="Edit" data-bs-toggle="modal" data-bs-target="#modalEditDriver<?php echo $row['id']; ?>">
                                         <i class="fas fa-edit"></i>
                                     </button>
+                                    <?php endif; ?>
                                     <button class="btn btn-sm btn-light border text-info shadow-sm" title="Detail" data-bs-toggle="modal" data-bs-target="#modalDetailDriver<?php echo $row['id']; ?>">
                                         <i class="fas fa-id-card"></i>
                                     </button>
+                                    <?php if ($_SESSION['role'] == 'ADMIN'): ?>
                                     <a href="data_driver.php?hapus=<?php echo $row['id']; ?>" class="btn btn-sm btn-light border text-danger shadow-sm" title="Hapus" onclick="return confirm('Yakin ingin menghapus data operasional <?php echo $nama_tampil; ?>?')"><i class="fas fa-trash"></i></a>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
 
+                            <?php ob_start(); ?>
                             <div class="modal fade" id="modalEditDriver<?php echo $row['id']; ?>" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog">
                                     <div class="modal-content" style="border-radius: 20px;">
@@ -293,7 +317,7 @@ if (isset($_GET['hapus'])) {
                                     </div>
                                 </div>
                             </div>
-                            <?php } ?>
+                            <?php $modals_html .= ob_get_clean(); } ?>
                         </tbody>
                     </table>
                 </div>
@@ -317,7 +341,7 @@ if (isset($_GET['hapus'])) {
                             <select name="id_login" class="form-select" style="border-radius: 10px;" required>
                                 <option value="" selected disabled>-- Pilih Akun (Kosong jika belum dibuat di Manajemen Pengguna) --</option>
                                 <?php
-                                $q_akun = mysqli_query($conn, "SELECT id, nama_lengkap, email FROM login WHERE role='driver' AND id NOT IN (SELECT id_login FROM driver)");
+                                $q_akun = mysqli_query($conn, "SELECT id, nama_lengkap, email FROM login WHERE UPPER(role)='DRIVER' AND id NOT IN (SELECT id_login FROM driver)");
                                 while($akun = mysqli_fetch_assoc($q_akun)){
                                     $nama_akun = !empty($akun['nama_lengkap']) ? $akun['nama_lengkap'] : $akun['email'];
                                     echo "<option value='".$akun['id']."'>".$nama_akun."</option>";
@@ -350,6 +374,8 @@ if (isset($_GET['hapus'])) {
             </div>
         </div>
     </div>
+    
+    <?= isset($modals_html) ? $modals_html : ''; ?>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

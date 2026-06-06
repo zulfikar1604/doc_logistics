@@ -4,9 +4,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
 // 2. Buat variabel pengecekan untuk menu dokumentasi (dropdown)
 $is_docs_active = ($current_page == 'buat_surat_jalan.php' || $current_page == 'invoice_pengiriman.php');
+$is_gudang_active = ($current_page == 'stok_barang.php' || $current_page == 'penerimaan_barang.php');
 
 // 3. Ambil ROLE user untuk filter menu
-$role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'STAF';
+$role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'MANAGER';
 
 // 4. Nama user untuk footer
 $nav_nama = isset($_SESSION['nama_lengkap']) && !empty($_SESSION['nama_lengkap']) ? $_SESSION['nama_lengkap'] : 'Administrator';
@@ -70,10 +71,21 @@ $nav_nama = isset($_SESSION['nama_lengkap']) && !empty($_SESSION['nama_lengkap']
                     </li>
                 </ul>
             </li>
-            <li class="<?php echo ($current_page == 'stok_barang.php') ? 'active' : ''; ?>">
-                <a href="stok_barang.php">
-                    <i class="fas fa-boxes"></i> Stok Barang
+            <li>
+                <a href="#collapseGudang" 
+                   data-bs-toggle="collapse" 
+                   class="dropdown-toggle"
+                   aria-expanded="<?php echo $is_gudang_active ? 'true' : 'false'; ?>">
+                    <i class="fas fa-warehouse"></i> Manajemen Gudang
                 </a>
+                <ul class="collapse list-unstyled submenu <?php echo $is_gudang_active ? 'show' : ''; ?>" id="collapseGudang">
+                    <li class="<?php echo ($current_page == 'stok_barang.php') ? 'active' : ''; ?>">
+                        <a href="stok_barang.php">Master Data Barang</a>
+                    </li>
+                    <li class="<?php echo ($current_page == 'penerimaan_barang.php') ? 'active' : ''; ?>">
+                        <a href="penerimaan_barang.php">Penerimaan Barang</a>
+                    </li>
+                </ul>
             </li>
             <li class="<?php echo ($current_page == 'status_pengiriman.php') ? 'active' : ''; ?>">
                 <a href="status_pengiriman.php">
@@ -99,6 +111,11 @@ $nav_nama = isset($_SESSION['nama_lengkap']) && !empty($_SESSION['nama_lengkap']
                 </a>
             </li>
             <?php if($role != 'DRIVER'): ?>
+            <li class="<?php echo ($current_page == 'arsip_penerimaan.php') ? 'active' : ''; ?>">
+                <a href="arsip_penerimaan.php">
+                    <i class="fas fa-box-open"></i> Arsip Penerimaan
+                </a>
+            </li>
             <li class="<?php echo ($current_page == 'manajemen_invoice.php') ? 'active' : ''; ?>">
                 <a href="manajemen_invoice.php">
                     <i class="fas fa-file-invoice-dollar"></i> Arsip Invoice
@@ -137,7 +154,7 @@ $nav_nama = isset($_SESSION['nama_lengkap']) && !empty($_SESSION['nama_lengkap']
                     <i class="fas fa-route"></i> Manajemen Rute
                 </a>
             </li>
-            <?php if($role == 'MANAGER'): ?>
+            <?php if($role == 'ADMIN' || $role == 'MANAGER'): ?>
             <li class="<?php echo ($current_page == 'user_management.php') ? 'active' : ''; ?>">
                 <a href="user_management.php">
                     <i class="fas fa-user-shield"></i> User Management
@@ -178,17 +195,14 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Fix for multiple pages trying to bind click to toggleBtn
     if (toggleBtn) {
-        // Hapus event listener lama dengan clone (bila ada conflict)
         var newToggleBtn = toggleBtn.cloneNode(true);
         toggleBtn.parentNode.replaceChild(newToggleBtn, toggleBtn);
         
         newToggleBtn.addEventListener("click", function() {
             if (window.innerWidth <= 768) {
-                // Mode HP/Tablet: Munculkan Sidebar + Overlay
                 sidebar.classList.toggle("show");
                 overlay.classList.toggle("show");
             } else {
-                // Mode Desktop/Laptop: Sembunyikan Sidebar, Penuhkan Konten
                 sidebar.classList.toggle("collapsed");
                 if (mainContent) mainContent.classList.toggle("expanded");
             }
@@ -208,5 +222,34 @@ document.addEventListener("DOMContentLoaded", function() {
             overlay.classList.remove("show");
         });
     }
+
+    // =====================
+    // SMOOTH PAGE TRANSITIONS
+    // =====================
+    document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        // Only intercept internal links (not anchors, not external, not logout, not data-bs-toggle)
+        if (
+            href &&
+            !href.startsWith('#') &&
+            !href.startsWith('http') &&
+            !href.startsWith('javascript') &&
+            !href.startsWith('mailto') &&
+            !link.hasAttribute('data-bs-toggle') &&
+            !link.hasAttribute('data-bs-target') &&
+            !link.hasAttribute('target') &&
+            link.getAttribute('onclick') === null
+        ) {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.body.classList.add('page-leaving');
+                var dest = href;
+                setTimeout(function() {
+                    window.location.href = dest;
+                }, 200);
+            });
+        }
+    });
 });
+
 </script>

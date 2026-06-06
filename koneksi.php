@@ -27,8 +27,14 @@ if (!function_exists('buat_notifikasi')) {
             $q = "INSERT INTO notifications (id_login, judul, pesan, tipe, link) VALUES ('$target_id_login', '$judul', '$pesan', '$tipe', '$link')";
             mysqli_query($conn, $q);
         } elseif (!empty($target_role)) {
-            // Fan-out Notification (e.g. ke SEMUA Manager)
-            $q_users = mysqli_query($conn, "SELECT id FROM login WHERE role = '$target_role'");
+            // Fan-out Notification (supports comma-separated roles like 'MANAGER,ADMIN')
+            $roles = explode(',', $target_role);
+            $roles_escaped = array_map(function($r) use ($conn) {
+                return "'" . mysqli_real_escape_string($conn, strtoupper(trim($r))) . "'";
+            }, $roles);
+            $roles_in = implode(',', $roles_escaped);
+
+            $q_users = mysqli_query($conn, "SELECT id FROM login WHERE UPPER(role) IN ($roles_in)");
             while ($u = mysqli_fetch_assoc($q_users)) {
                 $uid = $u['id'];
                 $q = "INSERT INTO notifications (id_login, judul, pesan, tipe, link) VALUES ('$uid', '$judul', '$pesan', '$tipe', '$link')";

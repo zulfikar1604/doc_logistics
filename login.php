@@ -58,6 +58,7 @@ if (isset($_POST['login'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal Login | PT Elektronik Global</title>
+    <link rel="icon" type="image/png" href="assets/img/icon-192-nobg.png?v=4">
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -91,6 +92,7 @@ if (isset($_POST['login'])) {
             border-radius: 24px;
             box-shadow: 0 25px 50px rgba(0,0,0,0.15);
             padding: 30px;
+            margin-top: 40px;
         }
 
         .brand-logo {
@@ -105,7 +107,6 @@ if (isset($_POST['login'])) {
             color: white;
             font-size: 35px;
             box-shadow: 0 15px 30px rgba(30, 58, 138, 0.4);
-            transform: rotate(-5deg);
         }
 
         .btn-primary {
@@ -180,7 +181,7 @@ if (isset($_POST['login'])) {
         <div class="col-md-6 col-lg-5 col-xl-4">
             <div class="card-glass">
                 <div class="brand-logo">
-                    <i class="fas fa-truck-fast" style="transform: rotate(5deg);"></i>
+                    <i class="fas fa-truck-fast"></i>
                 </div>
                 <h3 class="text-center fw-bold mb-1" style="color: #0f172a;">Portal Internal</h3>
                 <p class="text-center text-muted mb-4 small fw-medium">PT Elektronik Global Logistics System</p>
@@ -196,7 +197,7 @@ if (isset($_POST['login'])) {
                         <label class="form-label small fw-bold text-secondary">Alamat Email</label>
                         <div class="input-group">
                             <span class="input-group-text border-end-0"><i class="fas fa-envelope text-primary opacity-50"></i></span>
-                            <input type="email" name="email" class="form-control border-start-0 ps-0" placeholder="nama@elektronikglobal.com" required>
+                            <input type="email" name="email" class="form-control border-start-0" placeholder="nama@elektronikglobal.com" required>
                         </div>
                     </div>
                     
@@ -204,7 +205,7 @@ if (isset($_POST['login'])) {
                         <label class="form-label small fw-bold text-secondary">Kata Sandi</label>
                         <div class="input-group">
                             <span class="input-group-text border-end-0"><i class="fas fa-lock text-primary opacity-50"></i></span>
-                            <input type="password" name="password" class="form-control border-start-0 ps-0" placeholder="••••••••" required>
+                            <input type="password" name="password" class="form-control border-start-0" placeholder="••••••••" required>
                         </div>
                     </div>
 

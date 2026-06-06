@@ -52,15 +52,16 @@ while ($row = mysqli_fetch_assoc($r)) {
 }
 
 // 3. Cari Barang Stok
-$r = mysqli_query($conn, "SELECT nama_barang, stok, satuan, kategori 
+$r = mysqli_query($conn, "SELECT sku, nama_barang, stok, satuan, kategori 
                            FROM stok_barang 
-                           WHERE nama_barang LIKE '%$q%' OR kategori LIKE '%$q%'
+                           WHERE nama_barang LIKE '%$q%' OR kategori LIKE '%$q%' OR sku LIKE '%$q%'
                            LIMIT 3");
 while ($row = mysqli_fetch_assoc($r)) {
+    $sku_label = $row['sku'] ? '['.$row['sku'].'] ' : '';
     $results[] = [
         'type'     => 'barang',
         'category' => 'Stok Barang',
-        'title'    => $row['nama_barang'],
+        'title'    => $sku_label . $row['nama_barang'],
         'subtitle' => 'Kategori: ' . $row['kategori'] . ' · Stok: ' . $row['stok'] . ' ' . $row['satuan'],
         'link'     => 'stok_barang.php',
     ];

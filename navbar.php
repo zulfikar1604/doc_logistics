@@ -7,7 +7,8 @@ $nav_foto_url = "https://ui-avatars.com/api/?name=".urlencode($nav_nama)."&backg
 
 // Jika koneksi tersedia dan email ada, tarik foto asli dari database
 if (!empty($nav_email) && isset($conn)) {
-    $q_nav_foto = mysqli_query($conn, "SELECT foto FROM login WHERE email = '$nav_email'");
+    $nav_email_safe = mysqli_real_escape_string($conn, $nav_email);
+    $q_nav_foto = mysqli_query($conn, "SELECT foto FROM login WHERE email = '$nav_email_safe'");
     if ($q_nav_foto && mysqli_num_rows($q_nav_foto) > 0) {
         $d_nav_foto = mysqli_fetch_assoc($q_nav_foto);
         if (!empty($d_nav_foto['foto'])) {
@@ -71,10 +72,10 @@ if (!empty($nav_email) && isset($conn)) {
             <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle text-dark" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
                 <div class="text-end me-3 d-none d-md-block">
                     <p class="mb-0 small fw-bold text-dark">
-                        <?php echo !empty($_SESSION['nama_lengkap']) ? $_SESSION['nama_lengkap'] : 'Administrator'; ?>
+                        <?php echo !empty($_SESSION['nama_lengkap']) ? htmlspecialchars($_SESSION['nama_lengkap']) : 'Administrator'; ?>
                     </p>
                     <p class="mb-0 text-muted" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">
-                        <?php echo !empty($_SESSION['role']) ? $_SESSION['role'] : 'STAFF LOGISTIK'; ?>
+                        <?php echo !empty($_SESSION['role']) ? htmlspecialchars($_SESSION['role']) : 'MANAGER LOGISTIK'; ?>
                     </p>
                 </div>
                 <img src="<?php echo $nav_foto_url; ?>" 
@@ -83,14 +84,14 @@ if (!empty($nav_email) && isset($conn)) {
             </a>
             <ul class="dropdown-menu dropdown-menu-end border-0 shadow mt-3" aria-labelledby="userMenu" style="border-radius: 15px; min-width: 200px;">
                 <li class="px-3 py-2 border-bottom mb-2">
-                    <p class="mb-0 small fw-bold text-dark"><?php echo !empty($_SESSION['nama_lengkap']) ? $_SESSION['nama_lengkap'] : 'Administrator'; ?></p>
-                    <small class="text-muted" style="font-size: 0.7rem; text-transform: uppercase;"><?php echo !empty($_SESSION['role']) ? $_SESSION['role'] : 'Admin'; ?></small>
+                    <p class="mb-0 small fw-bold text-dark"><?php echo !empty($_SESSION['nama_lengkap']) ? htmlspecialchars($_SESSION['nama_lengkap']) : 'Administrator'; ?></p>
+                    <small class="text-muted" style="font-size: 0.7rem; text-transform: uppercase;"><?php echo !empty($_SESSION['role']) ? htmlspecialchars($_SESSION['role']) : 'Admin'; ?></small>
                 </li>
                 <li><a class="dropdown-item py-2 small" href="profil.php"><i class="fas fa-user-circle me-2 text-muted"></i> Profil Saya</a></li>
                 <li><a class="dropdown-item py-2 small" href="pengaturan.php"><i class="fas fa-cog me-2 text-muted"></i> Pengaturan Akun</a></li>
                 <li><hr class="dropdown-divider opacity-50"></li>
                 <li>
-                    <a class="dropdown-item py-2 small text-danger fw-bold" href="keluar.php">
+                    <a class="dropdown-item py-2 small text-danger fw-bold" href="#" id="btnLogout">
                         <i class="fas fa-sign-out-alt me-2"></i> Keluar Sistem
                     </a>
                 </li>
@@ -100,7 +101,16 @@ if (!empty($nav_email) && isset($conn)) {
 </nav>
 
 <script>
+// Fungsi sanitasi HTML untuk mencegah XSS
+const escapeHTML = (str) => {
+    if (!str) return '';
+    return String(str).replace(/[&<>'"]/g, 
+        tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag] || tag)
+    );
+};
+
 document.addEventListener('DOMContentLoaded', function() {
+
     function fetchNotifications() {
         fetch('api_notifications.php?action=fetch')
             .then(response => response.json())
@@ -126,13 +136,13 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (notif.tipe === 'danger') icon = 'fa-times-circle text-danger';
 
                             html += `
-                                <li><a class="dropdown-item py-2 notif-item" href="${notif.link || '#'}" data-id="${notif.id}" style="font-size: 0.8rem; white-space: normal;">
+                                <li><a class="dropdown-item py-2 notif-item" href="${escapeHTML(notif.link) || '#'}" data-id="${escapeHTML(notif.id)}" style="font-size: 0.8rem; white-space: normal;">
                                     <div class="d-flex">
                                         <div class="me-2 mt-1"><i class="fas ${icon}"></i></div>
                                         <div>
-                                            <div class="fw-bold text-dark mb-1">${notif.judul}</div>
-                                            <div class="text-muted" style="font-size: 0.75rem;">${notif.pesan}</div>
-                                            <div class="text-primary mt-1" style="font-size: 0.65rem;"><i class="far fa-clock me-1"></i>${notif.time_ago}</div>
+                                            <div class="fw-bold text-dark mb-1">${escapeHTML(notif.judul)}</div>
+                                            <div class="text-muted" style="font-size: 0.75rem;">${escapeHTML(notif.pesan)}</div>
+                                            <div class="text-primary mt-1" style="font-size: 0.65rem;"><i class="far fa-clock me-1"></i>${escapeHTML(notif.time_ago)}</div>
                                         </div>
                                     </div>
                                 </a></li>
@@ -150,8 +160,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial fetch
     fetchNotifications();
 
-    // Poll every 3 seconds for real-time feel
-    setInterval(fetchNotifications, 3000);
+    // Poll every 15 seconds (optimized for online deployment)
+    setInterval(fetchNotifications, 15000);
 
     // Mark as read when clicking a notification
     document.getElementById('notif-list').addEventListener('click', function(e) {
@@ -213,17 +223,17 @@ document.addEventListener('DOMContentLoaded', function() {
                             };
                             const icon = icons[item.type] || 'fa-search text-muted';
                             html += `
-                            <a href="${item.link}" class="d-flex align-items-center gap-3 p-2 rounded-2 text-decoration-none search-result-item"
+                            <a href="${escapeHTML(item.link)}" class="d-flex align-items-center gap-3 p-2 rounded-2 text-decoration-none search-result-item"
                                style="transition:background 0.15s; color:#1e293b;">
                                 <div style="width:34px;height:34px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                                     <i class="fas ${icon}" style="font-size:0.85rem;"></i>
                                 </div>
                                 <div style="min-width:0;">
-                                    <div class="fw-semibold text-truncate" style="font-size:0.83rem;">${item.title}</div>
-                                    <div class="text-muted text-truncate" style="font-size:0.72rem;">${item.subtitle}</div>
+                                    <div class="fw-semibold text-truncate" style="font-size:0.83rem;">${escapeHTML(item.title)}</div>
+                                    <div class="text-muted text-truncate" style="font-size:0.72rem;">${escapeHTML(item.subtitle)}</div>
                                 </div>
                                 <div class="ms-auto flex-shrink-0">
-                                    <span class="badge rounded-pill px-2" style="font-size:0.62rem;background:#e2e8f0;color:#64748b;">${item.category}</span>
+                                    <span class="badge rounded-pill px-2" style="font-size:0.62rem;background:#e2e8f0;color:#64748b;">${escapeHTML(item.category)}</span>
                                 </div>
                             </a>`;
                         });
@@ -231,7 +241,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         searchInner.innerHTML = `<div class="text-center text-muted py-3" style="font-size:0.82rem;">
                             <i class="fas fa-search-minus mb-1 d-block" style="font-size:1.4rem;opacity:0.3;"></i>
-                            Tidak ada hasil untuk "<b>${q}</b>"
+                            Tidak ada hasil untuk "<b>${escapeHTML(q)}</b>"
                         </div>`;
                     }
                     searchBox.classList.remove('d-none');
@@ -263,4 +273,66 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 })();
+</script>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<?php if (!isset($_SESSION['welcome_shown'])): $_SESSION['welcome_shown'] = true; ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: 'Selamat Datang!',
+            html: 'Halo <b><?php echo htmlspecialchars($_SESSION['nama_lengkap'] ?? 'Pengguna'); ?></b>,<br>Selamat bekerja dan semoga hari Anda produktif!',
+            icon: 'success',
+            confirmButtonText: 'Mulai Bekerja <i class="fas fa-rocket ms-2"></i>',
+            confirmButtonColor: '#1e3a8a',
+            backdrop: `rgba(15, 23, 42, 0.4)`,
+            customClass: {
+                popup: 'rounded-4 shadow-lg border-0',
+                confirmButton: 'btn btn-primary rounded-pill px-4 shadow-sm'
+            }
+        });
+    }
+});
+</script>
+<?php endif; ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnLogout = document.getElementById('btnLogout');
+    if (btnLogout) {
+        btnLogout.addEventListener('click', function(e) {
+            e.preventDefault();
+            // Fallback jika SweetAlert2 gagal dimuat (CDN down)
+            if (typeof Swal === 'undefined') {
+                if (confirm('Apakah Anda yakin ingin keluar dari sistem?')) {
+                    window.location.href = 'keluar.php';
+                }
+                return;
+            }
+            Swal.fire({
+                title: 'Konfirmasi Keluar',
+                text: "Sesi kerja Anda akan diakhiri.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'Ya, Keluar Sistem',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                backdrop: `rgba(15, 23, 42, 0.6)`,
+                customClass: {
+                    popup: 'rounded-4 shadow-lg border-0',
+                    confirmButton: 'btn btn-danger rounded-pill px-4 mx-2',
+                    cancelButton: 'btn btn-secondary rounded-pill px-4 mx-2'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'keluar.php';
+                }
+            });
+        });
+    }
+});
 </script>

@@ -2,14 +2,18 @@
 session_start();
 require 'koneksi.php'; 
 
-if (!isset($_SESSION['log'])) {
+if (!isset($_SESSION['log']) || ($_SESSION['role'] != 'ADMIN' && $_SESSION['role'] != 'MANAGER')) {
     header('location:index.php');
     exit();
 }
 
 // Proses Resign User
 if (isset($_GET['resign'])) {
-    $id = $_GET['resign'];
+    if ($_SESSION['role'] != 'ADMIN') {
+        echo "<script>alert('Akses Ditolak! Hanya Admin yang dapat me-resign karyawan.'); window.location.href='user_management.php';</script>";
+        exit();
+    }
+    $id = (int)$_GET['resign'];
     
     // 1. Ambil data user sebelum dihapus
     $get_user = mysqli_query($conn, "SELECT * FROM login WHERE id='$id'");
@@ -42,6 +46,7 @@ if (isset($_GET['resign'])) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>User Management - Global Logistics</title>
+    <link rel="icon" type="image/png" href="assets/img/icon-192-nobg.png?v=4">
     
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -75,9 +80,8 @@ if (isset($_GET['resign'])) {
 
         .badge-role { padding: 6px 12px; border-radius: 8px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; border: 1px solid transparent;}
         .role-admin { background: #fee2e2; color: #991b1b; border-color: #fca5a5;}
-        .role-staff { background: #e0f2fe; color: #0369a1; border-color: #bae6fd;}
+        .role-manager { background: #e0f2fe; color: #0369a1; border-color: #bae6fd;}
         .role-driver { background: #fef3c7; color: #92400e; border-color: #fde68a;}
-        .role-user { background: #f3f4f6; color: #475569; border-color: #cbd5e1;}
 
         .btn-action { border-radius: 10px; width: 35px; height: 35px; display: inline-flex; align-items: center; justify-content: center; transition: 0.2s; }
         .btn-action:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
@@ -96,10 +100,11 @@ if (isset($_GET['resign'])) {
                     <h3 class="fw-bold mb-1" style="color: #1a367e;">Manajemen Pengguna</h3>
                     <p class="text-muted small mb-0">Kelola hak akses akun tim PT Elektronik Global (SPJ).</p>
                 </div>
+                <?php if ($role == 'ADMIN'): ?>
                 <button class="btn btn-dark shadow-sm mt-3 mt-md-0 fw-medium" style="border-radius: 10px; padding: 10px 20px;" data-bs-toggle="modal" data-bs-target="#modalTambah">
                     <i class="fas fa-user-plus me-2"></i> Daftarkan User
-                    
                 </button>
+                <?php endif; ?>
                 <div class="modal fade" id="modalTambah" tabindex="-1" aria-labelledby="modalTambahLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content" style="border-radius: 20px;">
@@ -130,6 +135,7 @@ if (isset($_GET['resign'])) {
                             <select name="role" class="form-select" style="border-radius: 10px;" required>
                                 <option value="" selected disabled>-- Pilih Jabatan --</option>
                                 <option value="admin">Admin</option>
+                                <option value="manager">Manager</option>
                                 <option value="driver">Driver / Sopir</option>
                             </select>
                         </div>
@@ -153,13 +159,16 @@ if (isset($_GET['resign'])) {
                                 <th>Nama Lengkap</th>
                                 <th>Username / Email</th>
                                 <th>Role / Jabatan</th>
+                                <?php if ($_SESSION['role'] == 'ADMIN'): ?>
                                 <th class="text-center">Aksi</th>
+                                <?php endif; ?>
                             </tr>
                         </thead>
                         <tbody>
                             <?php
+                            $modals_html = '';
                             // 1. QUERY DENGAN ORDER BY FIELD (ADMIN PALING ATAS)
-                            $query = mysqli_query($conn, "SELECT * FROM login ORDER BY FIELD(role, 'admin', 'staff', 'driver', 'user'), nama_lengkap ASC");
+                            $query = mysqli_query($conn, "SELECT * FROM login ORDER BY FIELD(role, 'admin', 'manager', 'driver'), nama_lengkap ASC");
                             
                             $avatar_colors = ['#1a367e', '#0369a1', '#f39c12', '#10b981', '#8b5cf6'];
 
@@ -170,7 +179,7 @@ if (isset($_GET['resign'])) {
 
                                 // Penentuan Class Badge Role
                                 $role = strtolower($row['role']);
-                                $role_class = 'role-user';
+                                $role_class = 'role-driver'; // Default visual
                                 if ($role == 'manager') $role_class = 'role-manager';
                                 if ($role == 'admin') $role_class = 'role-admin';
                                 if ($role == 'driver') $role_class = 'role-driver';
@@ -183,6 +192,7 @@ if (isset($_GET['resign'])) {
                                     <div class="small text-muted"><?php echo $row['email']; ?></div>
                                 </td>
                                 <td><span class="badge-role <?php echo $role_class; ?>"><?php echo $row['role']; ?></span></td>
+                                <?php if ($_SESSION['role'] == 'ADMIN'): ?>
                                 <td class="text-center">
                                     <button class="btn btn-action btn-light border text-primary me-1" title="Edit User" data-bs-toggle="modal" data-bs-target="#modalEdit<?php echo $row['id']; ?>">
                                         <i class="fas fa-edit"></i>
@@ -191,8 +201,10 @@ if (isset($_GET['resign'])) {
                                         <i class="fas fa-user-times"></i>
                                     </a>
                                 </td>
+                                <?php endif; ?>
                             </tr>
 
+                            <?php ob_start(); ?>
                             <div class="modal fade" id="modalEdit<?php echo $row['id']; ?>" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog">
                                     <div class="modal-content" style="border-radius: 20px;">
@@ -210,10 +222,9 @@ if (isset($_GET['resign'])) {
                                                 <div class="mb-3">
                                                     <label class="small fw-bold mb-1">Role Jabatan</label>
                                                     <select name="role" class="form-select">
-                                                        <option value="admin" <?php if($role == 'manager') echo 'selected'; ?>>Manager</option>
-                                                        <option value="staff" <?php if($role == 'admin') echo 'selected'; ?>>Admin</option>
+                                                        <option value="admin" <?php if($role == 'admin') echo 'selected'; ?>>Admin</option>
+                                                        <option value="manager" <?php if($role == 'manager') echo 'selected'; ?>>Manager</option>
                                                         <option value="driver" <?php if($role == 'driver') echo 'selected'; ?>>Driver</option>
-                                    
                                                     </select>
                                                 </div>
                                             </div>
@@ -225,13 +236,15 @@ if (isset($_GET['resign'])) {
                                     </div>
                                 </div>
                             </div>
-                            <?php } ?>
+                            <?php $modals_html .= ob_get_clean(); } ?>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
     </div>
+
+    <?= isset($modals_html) ? $modals_html : ''; ?>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

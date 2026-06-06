@@ -7,6 +7,12 @@ if (!isset($_SESSION['log'])) {
     exit();
 }
 
+$role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'MANAGER';
+if ($role != 'ADMIN') {
+    echo "<script>alert('Akses Ditolak! Hanya Admin yang dapat memproses dan menerbitkan Surat Jalan.'); window.location.href='manajemen_dokumen.php';</script>";
+    exit();
+}
+
 if (isset($_POST['tgl_kirim'])) {
     $no_sj          = mysqli_real_escape_string($conn, $_POST['no_sj'] ?? 'SJ-'.date('Ymd').'-001');
     $tgl_kirim      = mysqli_real_escape_string($conn, $_POST['tgl_kirim']);
@@ -39,56 +45,81 @@ if (isset($_POST['tgl_kirim'])) {
         $id_sj_terbaru = mysqli_insert_id($conn);
 
         // 2. Kalkulasi Total dan Simpan Rincian SJ
-        $nama_barang = $_POST['nama_barang'];
-        $jumlah      = $_POST['jumlah'];
-        $satuan      = $_POST['satuan'];
-        $keterangan  = $_POST['keterangan'];
+        $id_barang_arr = $_POST['id_barang'] ?? [];
+        $jumlah      = $_POST['jumlah'] ?? [];
+        $satuan      = $_POST['satuan'] ?? [];
+        $keterangan  = $_POST['keterangan'] ?? [];
 
         $total_qty = 0;
         $total_harga_barang = 0;
-        
-        // Array untuk menyimpan detail invoice barang
         $invoice_items = [];
 
-        for ($i = 0; $i < count($nama_barang); $i++) {
-            if (!empty($nama_barang[$i])) {
-                $item_nama  = mysqli_real_escape_string($conn, $nama_barang[$i]);
-                $item_qty   = (int)mysqli_real_escape_string($conn, $jumlah[$i]);
-                $item_sat   = mysqli_real_escape_string($conn, $satuan[$i]);
-                $item_ket   = mysqli_real_escape_string($conn, $keterangan[$i]);
-
-                // Insert Surat Jalan Detail
-                mysqli_query($conn, "INSERT INTO surat_jalan_detail (id_sj, nama_barang, jumlah, satuan, keterangan) VALUES ('$id_sj_terbaru', '$item_nama', '$item_qty', '$item_sat', '$item_ket')");
-
-                // Hitung Harga Barang dan Cek Stok dari Database Stok
-                $q_stok = mysqli_query($conn, "SELECT harga, stok FROM stok_barang WHERE nama_barang = '$item_nama' LIMIT 1");
-                $data_stok = mysqli_fetch_assoc($q_stok);
+        // Agregasi barang duplikat dalam form untuk mencegah stok negatif
+        $aggregated_items = [];
+        for ($i = 0; $i < count($id_barang_arr); $i++) {
+            if (!empty($id_barang_arr[$i])) {
+                $id_brg = (int)$id_barang_arr[$i];
+                $item_qty = (int)$jumlah[$i];
+                $item_sat = mysqli_real_escape_string($conn, $satuan[$i] ?? '');
+                $item_ket = mysqli_real_escape_string($conn, $keterangan[$i] ?? '');
                 
-                if (!$data_stok) {
-                    throw new Exception("Barang '$item_nama' tidak ditemukan di gudang.");
+                if (isset($aggregated_items[$id_brg])) {
+                    $aggregated_items[$id_brg]['qty'] += $item_qty;
+                    if ($item_ket) {
+                        $aggregated_items[$id_brg]['ket'] .= " | " . $item_ket;
+                    }
+                } else {
+                    $aggregated_items[$id_brg] = [
+                        'qty' => $item_qty,
+                        'sat' => $item_sat,
+                        'ket' => $item_ket
+                    ];
                 }
-                
-                if ($data_stok['stok'] < $item_qty) {
-                    throw new Exception("Stok '$item_nama' tidak mencukupi. Sisa stok: " . $data_stok['stok'] . ", diminta: " . $item_qty);
-                }
-
-                $harga_satuan = (float)$data_stok['harga'];
-                
-                // Kurangi Stok di Database
-                mysqli_query($conn, "UPDATE stok_barang SET stok = stok - $item_qty WHERE nama_barang = '$item_nama'");
-                
-                $subtotal_item = $harga_satuan * $item_qty;
-                
-                $total_qty += $item_qty;
-                $total_harga_barang += $subtotal_item;
-
-                $invoice_items[] = [
-                    'deskripsi' => "Barang: $item_nama",
-                    'tarif' => $harga_satuan,
-                    'qty' => $item_qty,
-                    'subtotal' => $subtotal_item
-                ];
             }
+        }
+
+        foreach ($aggregated_items as $id_brg => $data) {
+            $item_qty = $data['qty'];
+            $item_sat = $data['sat'];
+            $item_ket = $data['ket'];
+
+            // Cek stok berdasarkan ID
+            $q_stok = mysqli_query($conn, "SELECT nama_barang, harga, stok FROM stok_barang WHERE id = '$id_brg' LIMIT 1");
+            $data_stok = mysqli_fetch_assoc($q_stok);
+            
+            if (!$data_stok) {
+                throw new Exception("Barang dengan ID '$id_brg' tidak ditemukan di gudang.");
+            }
+            
+            $item_nama = mysqli_real_escape_string($conn, $data_stok['nama_barang']);
+            $harga_satuan = (float)$data_stok['harga'];
+
+            if ($data_stok['stok'] < $item_qty) {
+                throw new Exception("Stok '$item_nama' tidak mencukupi. Sisa stok: " . $data_stok['stok'] . ", diminta: " . $item_qty);
+            }
+            
+            // Atomic UPDATE Stok
+            mysqli_query($conn, "UPDATE stok_barang SET stok = stok - $item_qty WHERE id = '$id_brg' AND stok >= $item_qty");
+            if (mysqli_affected_rows($conn) == 0) {
+                throw new Exception("Gagal memotong stok '$item_nama' karena stok tidak mencukupi saat proses paralel.");
+            }
+
+            // Insert Surat Jalan Detail
+            if (!mysqli_query($conn, "INSERT INTO surat_jalan_detail (id_sj, nama_barang, jumlah, satuan, keterangan) VALUES ('$id_sj_terbaru', '$item_nama', '$item_qty', '$item_sat', '$item_ket')")) {
+                throw new Exception("Gagal menyimpan rincian surat jalan.");
+            }
+            
+            $subtotal_item = $harga_satuan * $item_qty;
+            
+            $total_qty += $item_qty;
+            $total_harga_barang += $subtotal_item;
+
+            $invoice_items[] = [
+                'deskripsi' => "Barang: $item_nama",
+                'tarif' => $harga_satuan,
+                'qty' => $item_qty,
+                'subtotal' => $subtotal_item
+            ];
         }
 
         // 3. Kalkulasi PPN & Biaya Prioritas
@@ -147,7 +178,7 @@ if (isset($_POST['tgl_kirim'])) {
         
         if (function_exists('buat_notifikasi')) {
             // Notif ke Manager
-            buat_notifikasi($conn, 'MANAGER', 0, $notif_judul, $notif_pesan, "success", "status_pengiriman.php");
+            buat_notifikasi($conn, 'MANAGER,ADMIN', 0, $notif_judul, $notif_pesan, "success", "status_pengiriman.php");
             
             // Notif ke Driver spesifik
             $q_drv = mysqli_query($conn, "SELECT id_login FROM driver WHERE id='$id_driver'");

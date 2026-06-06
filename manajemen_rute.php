@@ -2,7 +2,20 @@
 session_start();
 require 'koneksi.php';
 
-if (!isset($_SESSION['log'])) { header('location:index.php'); exit(); }
+if (!isset($_SESSION['log'])) {
+    header('location:index.php');
+    exit();
+}
+$role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'MANAGER';
+if ($role == 'DRIVER') {
+    header('location:dashboard_driver.php');
+    exit();
+}
+
+if ((isset($_GET['edit']) || isset($_GET['buat'])) && $role != 'ADMIN') {
+    header('location:manajemen_rute.php');
+    exit();
+}
 
 // Ambil semua rute aktif
 $q_routes = mysqli_query($conn, "SELECT r.*, (SELECT COUNT(*) FROM route_details WHERE id_route=r.id) as jml_checkpoint FROM routes r WHERE r.is_active=1 ORDER BY r.tipe_rute ASC, r.nama_rute ASC");
@@ -30,6 +43,7 @@ if (isset($_GET['edit'])) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Manajemen Rute - Global Logistics</title>
+    <link rel="icon" type="image/png" href="assets/img/icon-192-nobg.png?v=4">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -75,7 +89,9 @@ if (isset($_GET['edit'])) {
                     <h3 class="fw-bold mb-1" style="color:#1a367e;">Manajemen Rute</h3>
                     <p class="text-muted small mb-0">Kelola rute perjalanan dan checkpoint. Rute pulang otomatis tergenerate.</p>
                 </div>
+                <?php if ($role == 'ADMIN'): ?>
                 <a href="manajemen_rute.php?buat=1" class="btn btn-sultan mt-2 mt-md-0"><i class="fas fa-plus me-2"></i>Buat Rute Baru</a>
+                <?php endif; ?>
             </div>
 
             <div class="card-sultan p-0">
@@ -94,8 +110,12 @@ if (isset($_GET['edit'])) {
                                 <td class="text-end fw-bold text-primary">Rp <?= number_format($r['total_biaya_rute'],0,',','.'); ?></td>
                                 <td class="text-center">
                                     <?php if($r['tipe_rute']=='PERGI'): ?>
-                                    <a href="manajemen_rute.php?edit=<?= $r['id']; ?>" class="btn btn-sm btn-light border me-1" title="Edit"><i class="fas fa-edit text-primary"></i></a>
-                                    <a href="proses_rute.php?hapus_rute=<?= $r['id']; ?>" class="btn btn-sm btn-light border" title="Hapus" onclick="return confirm('Hapus rute ini beserta rute pulangnya?')"><i class="fas fa-trash text-danger"></i></a>
+                                        <?php if ($role == 'ADMIN'): ?>
+                                        <a href="manajemen_rute.php?edit=<?= $r['id']; ?>" class="btn btn-sm btn-light border me-1" title="Edit"><i class="fas fa-edit text-primary"></i></a>
+                                        <a href="proses_rute.php?hapus_rute=<?= $r['id']; ?>" class="btn btn-sm btn-light border" title="Hapus" onclick="return confirm('Hapus rute ini beserta rute pulangnya?')"><i class="fas fa-trash text-danger"></i></a>
+                                        <?php else: ?>
+                                        <span class="text-muted small"><i class="fas fa-eye me-1"></i>Detail (Read-only)</span>
+                                        <?php endif; ?>
                                     <?php else: ?>
                                     <span class="text-muted small"><i class="fas fa-lock me-1"></i>Auto</span>
                                     <?php endif; ?>

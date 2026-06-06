@@ -45,7 +45,7 @@ if (isset($_POST['checkin_route'])) {
         $notif_judul = "Driver Check-in Lokasi";
         $notif_pesan = "Driver $nama_driver telah sampai di titik checkpoint rute Surat Jalan #$id_sj.";
         if (function_exists('buat_notifikasi')) {
-            buat_notifikasi($conn, 'MANAGER', 0, $notif_judul, $notif_pesan, 'info', "live_tracking.php?order=$id_sj");
+            buat_notifikasi($conn, 'MANAGER,ADMIN', 0, $notif_judul, $notif_pesan, 'info', "live_tracking.php?order=$id_sj");
         }
 
         mysqli_commit($conn);
@@ -69,11 +69,46 @@ if (isset($_POST['selesaikan_trip'])) {
         mysqli_query($conn, "UPDATE surat_jalan SET status='DELIVERED' WHERE id='$id_sj'");
         mysqli_query($conn, "UPDATE driver SET status_kerja='RETURNING' WHERE id='$id_supir_asli'");
         mysqli_query($conn, "UPDATE armada SET status='RETURNING' WHERE id='$id_armada'");
+        
+        // Increment odometer for Pergi route distance
+        $q_dist = mysqli_query($conn, "
+            SELECT sj.id_route, r.total_jarak_km, r.nama_rute, a.nopol, a.odometer, a.odometer_terakhir_servis 
+            FROM surat_jalan sj 
+            LEFT JOIN routes r ON sj.id_route = r.id 
+            LEFT JOIN armada a ON sj.id_armada = a.id 
+            WHERE sj.id = '$id_sj'
+        ");
+        if ($q_dist && mysqli_num_rows($q_dist) > 0) {
+            $d_dist = mysqli_fetch_assoc($q_dist);
+            $jarak = floatval($d_dist['total_jarak_km']);
+            $nopol = $d_dist['nopol'];
+            
+            // Update odometer
+            mysqli_query($conn, "UPDATE armada SET odometer = odometer + $jarak WHERE id = '$id_armada'");
+            
+            // Fetch updated readings to check threshold
+            $odo_now = (int)$d_dist['odometer'] + $jarak;
+            $odo_servis = (int)$d_dist['odometer_terakhir_servis'];
+            if (($odo_now - $odo_servis) >= 10000) {
+                if (function_exists('buat_notifikasi')) {
+                    buat_notifikasi(
+                        $conn, 
+                        'MANAGER,ADMIN', 
+                        0, 
+                        "Armada Butuh Servis!", 
+                        "Armada $nopol telah menempuh " . number_format($odo_now - $odo_servis, 0, ',', '.') . " km sejak servis terakhir. Segera lakukan perawatan rutin.", 
+                        "warning", 
+                        "data_armada.php"
+                    );
+                }
+            }
+        }
+
         // Insert Notification
         $notif_judul = "Bongkar Muat Selesai";
         $notif_pesan = "Driver $nama_driver telah menyelesaikan pengiriman (DELIVERED) untuk Surat Jalan #$id_sj dan sedang dalam perjalanan pulang.";
         if (function_exists('buat_notifikasi')) {
-            buat_notifikasi($conn, 'MANAGER', 0, $notif_judul, $notif_pesan, 'success', 'status_pengiriman.php');
+            buat_notifikasi($conn, 'MANAGER,ADMIN', 0, $notif_judul, $notif_pesan, 'success', 'status_pengiriman.php');
         }
 
         mysqli_commit($conn);
@@ -97,15 +132,57 @@ if (isset($_POST['tiba_di_gudang'])) {
         mysqli_query($conn, "UPDATE surat_jalan SET status='FINISHED' WHERE id='$id_sj'");
         mysqli_query($conn, "UPDATE driver SET status_kerja='AVAILABLE' WHERE id='$id_supir_asli'");
         mysqli_query($conn, "UPDATE armada SET status='READY' WHERE id='$id_armada'");
+        
+        // Increment odometer for Pulang route distance
+        $q_dist = mysqli_query($conn, "
+            SELECT sj.id_return_route, r.total_jarak_km, r.nama_rute, a.nopol, a.odometer, a.odometer_terakhir_servis 
+            FROM surat_jalan sj 
+            LEFT JOIN routes r ON sj.id_return_route = r.id 
+            LEFT JOIN armada a ON sj.id_armada = a.id 
+            WHERE sj.id = '$id_sj'
+        ");
+        if ($q_dist && mysqli_num_rows($q_dist) > 0) {
+            $d_dist = mysqli_fetch_assoc($q_dist);
+            $jarak = floatval($d_dist['total_jarak_km']);
+            $nopol = $d_dist['nopol'];
+            
+            // Update odometer
+            mysqli_query($conn, "UPDATE armada SET odometer = odometer + $jarak WHERE id = '$id_armada'");
+            
+            // Fetch updated readings to check threshold
+            $odo_now = (int)$d_dist['odometer'] + $jarak;
+            $odo_servis = (int)$d_dist['odometer_terakhir_servis'];
+            if (($odo_now - $odo_servis) >= 10000) {
+                // Ubah status armada menjadi MAINTENANCE karena butuh servis
+                mysqli_query($conn, "UPDATE armada SET status='MAINTENANCE' WHERE id='$id_armada'");
+
+                if (function_exists('buat_notifikasi')) {
+                    buat_notifikasi(
+                        $conn, 
+                        'MANAGER,ADMIN', 
+                        0, 
+                        "Armada Butuh Servis!", 
+                        "Armada $nopol telah menempuh " . number_format($odo_now - $odo_servis, 0, ',', '.') . " km sejak servis terakhir. Segera lakukan perawatan rutin.", 
+                        "warning", 
+                        "data_armada.php"
+                    );
+                }
+            }
+        }
+
         // Insert Notification
         $notif_judul = "Armada Telah Kembali";
         $notif_pesan = "Driver $nama_driver dan Armada telah tiba kembali di Markas. Tugas #$id_sj sepenuhnya selesai.";
         if (function_exists('buat_notifikasi')) {
-            buat_notifikasi($conn, 'MANAGER', 0, $notif_judul, $notif_pesan, 'success', 'status_pengiriman.php');
+            buat_notifikasi($conn, 'MANAGER,ADMIN', 0, $notif_judul, $notif_pesan, 'success', 'status_pengiriman.php');
         }
 
         mysqli_commit($conn);
-        echo "<script>alert('Tugas selesai sepenuhnya! Armada dan supir kembali stand-by.'); window.location.href='dashboard_driver.php';</script>";
+        $pesan_alert = "Tugas selesai sepenuhnya! Armada dan supir kembali stand-by.";
+        if (isset($odo_now) && ($odo_now - $odo_servis) >= 10000) {
+            $pesan_alert = "Tugas selesai! Armada otomatis diset ke MAINTENANCE karena telah menempuh >10.000 KM sejak servis terakhir.";
+        }
+        echo "<script>alert('$pesan_alert'); window.location.href='dashboard_driver.php';</script>";
     } catch (Exception $e) {
         mysqli_rollback($conn);
         echo "<script>alert('Gagal: ".$e->getMessage()."'); window.location.href='dashboard_driver.php';</script>";
@@ -171,6 +248,7 @@ while ($row = mysqli_fetch_assoc($q_riwayat)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>Driver Dashboard</title>
+    <link rel="icon" type="image/png" href="assets/img/icon-192-nobg.png?v=4">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">

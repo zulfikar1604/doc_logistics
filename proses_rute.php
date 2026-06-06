@@ -7,6 +7,20 @@ if (!isset($_SESSION['log'])) {
     exit();
 }
 
+$role = isset($_SESSION['role']) ? strtoupper($_SESSION['role']) : 'MANAGER';
+if ($role != 'ADMIN') {
+    if (isset($_POST['simpan_rute']) || isset($_POST['update_rute']) || isset($_GET['hapus_rute']) || (isset($_POST['aksi']) && ($_POST['aksi'] == 'update_urutan' || $_POST['aksi'] == 'update_jarak'))) {
+        if (isset($_POST['aksi'])) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => 'Unauthorized action']);
+            exit();
+        } else {
+            echo "<script>alert('Anda tidak memiliki akses untuk melakukan tindakan ini!'); window.location.href='manajemen_rute.php';</script>";
+            exit();
+        }
+    }
+}
+
 // =============================================
 // AJAX: UPDATE SORT ORDER (Drag-and-Drop)
 // =============================================
