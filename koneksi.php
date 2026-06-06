@@ -47,4 +47,7 @@ if (!function_exists('buat_notifikasi')) {
         }
     }
 }
+
+// Jalankan pengecekan kedaluwarsa secara global di setiap page load
+include_once 'cek_kedaluwarsa.php';
 ?>

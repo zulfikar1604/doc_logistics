@@ -85,8 +85,9 @@ if (isset($_GET['hapus']) && $role == 'ADMIN') {
 // =========================================================================
 if (isset($_GET['catat_servis']) && $role == 'ADMIN') {
     $id = (int)$_GET['catat_servis'];
-    mysqli_query($conn, "UPDATE armada SET odometer_terakhir_servis = odometer WHERE id='$id'");
-    echo "<script>alert('Servis berhasil dicatat! Odometer terakhir servis disinkronisasikan.'); window.location.href='data_armada.php';</script>";
+    // Update odometer_terakhir_servis dan ubah status kembali ke READY
+    mysqli_query($conn, "UPDATE armada SET odometer_terakhir_servis = odometer, status = 'READY' WHERE id='$id'");
+    echo "<script>alert('Servis berhasil dicatat! Kendaraan kini berstatus READY dan siap bertugas kembali.'); window.location.href='data_armada.php';</script>";
     exit();
 }
 ?>

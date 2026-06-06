@@ -38,9 +38,9 @@ if (isset($_POST['tgl_kirim'])) {
     mysqli_begin_transaction($conn);
 
     try {
-        // 1. Simpan Surat Jalan (Status ON TRIP - Driver langsung berangkat, invoice dibayar belakangan)
+        // 1. Simpan Surat Jalan (Status WAITING CONFIRMATION - Menunggu driver konfirmasi truk)
         $query_sj = "INSERT INTO surat_jalan (no_sj, tgl_kirim, prioritas, id_driver, id_armada, penerima, kota_tujuan, alamat_tujuan, status, id_route, id_return_route) 
-                     VALUES ('$no_sj', '$tgl_kirim', '$prioritas', '$id_driver', '$id_armada', '$penerima', '$kota_tujuan', '$alamat_tujuan', 'ON TRIP', '$id_route', $id_return_route)";
+                     VALUES ('$no_sj', '$tgl_kirim', '$prioritas', '$id_driver', '$id_armada', '$penerima', '$kota_tujuan', '$alamat_tujuan', 'WAITING CONFIRMATION', '$id_route', $id_return_route)";
         mysqli_query($conn, $query_sj);
         $id_sj_terbaru = mysqli_insert_id($conn);
 
@@ -168,13 +168,13 @@ if (isset($_POST['tgl_kirim'])) {
         $desc_ppn = "PPN 11%";
         mysqli_query($conn, "INSERT INTO invoice_detail (id_invoice, deskripsi, tarif, qty, subtotal) VALUES ('$id_invoice_terbaru', '$desc_ppn', '$ppn', '1', '$ppn')");
 
-        // 6. Update Status Driver & Armada menjadi ON TRIP (Langsung berangkat, invoice menyusul)
-        mysqli_query($conn, "UPDATE driver SET status_kerja = 'ON TRIP' WHERE id = '$id_driver'");
-        mysqli_query($conn, "UPDATE armada SET status = 'ON TRIP' WHERE id = '$id_armada'");
+        // 6. Update Status Driver & Armada menjadi BOOKED (Menunggu konfirmasi)
+        mysqli_query($conn, "UPDATE driver SET status_kerja = 'BOOKED' WHERE id = '$id_driver'");
+        mysqli_query($conn, "UPDATE armada SET status = 'BOOKED' WHERE id = '$id_armada'");
 
         // 7. Insert Notification
         $notif_judul = "Surat Jalan Diterbitkan";
-        $notif_pesan = "Dokumen $no_sj dengan rute $nama_rute telah diterbitkan dan driver siap berangkat.";
+        $notif_pesan = "Dokumen $no_sj dengan rute $nama_rute telah diterbitkan. Menunggu driver mengkonfirmasi kesiapan armada.";
         
         if (function_exists('buat_notifikasi')) {
             // Notif ke Manager
@@ -193,7 +193,7 @@ if (isset($_POST['tgl_kirim'])) {
         mysqli_commit($conn);
 
         echo "<script>
-                alert('Berhasil! Surat Jalan diterbitkan. Driver langsung ON TRIP. Invoice otomatis terbuat dan bisa dibayar kapanpun.');
+                alert('Berhasil! Surat Jalan diterbitkan. Menunggu driver konfirmasi truk sebelum berangkat. Invoice otomatis terbuat dan akan batal jika tidak dibayar dalam 2 jam.');
                 window.location.href='status_pengiriman.php';
               </script>";
 

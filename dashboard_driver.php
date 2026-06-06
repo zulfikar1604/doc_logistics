@@ -191,12 +191,40 @@ if (isset($_POST['tiba_di_gudang'])) {
 }
 
 // ==========================================
+// LOGIKA: KONFIRMASI ARMADA & BERANGKAT
+// ==========================================
+if (isset($_POST['konfirmasi_berangkat'])) {
+    $id_sj = mysqli_real_escape_string($conn, $_POST['id_sj']);
+    $id_armada = mysqli_real_escape_string($conn, $_POST['id_armada']);
+    
+    mysqli_begin_transaction($conn);
+    try {
+        mysqli_query($conn, "UPDATE surat_jalan SET status='ON TRIP' WHERE id='$id_sj'");
+        mysqli_query($conn, "UPDATE driver SET status_kerja='ON TRIP' WHERE id='$id_supir_asli'");
+        mysqli_query($conn, "UPDATE armada SET status='ON TRIP' WHERE id='$id_armada'");
+        
+        $notif_judul = "Armada Berangkat";
+        $notif_pesan = "Driver $nama_driver telah mengkonfirmasi armada dan memulai perjalanan Surat Jalan #$id_sj.";
+        if (function_exists('buat_notifikasi')) {
+            buat_notifikasi($conn, 'MANAGER,ADMIN', 0, $notif_judul, $notif_pesan, 'info', 'status_pengiriman.php');
+        }
+
+        mysqli_commit($conn);
+        echo "<script>alert('Armada Dikonfirmasi! Anda sekarang dalam status ON TRIP.'); window.location.href='dashboard_driver.php';</script>";
+    } catch (Exception $e) {
+        mysqli_rollback($conn);
+        echo "<script>alert('Gagal: ".$e->getMessage()."'); window.location.href='dashboard_driver.php';</script>";
+    }
+    exit();
+}
+
+// ==========================================
 // AMBIL DATA AKTIF
 // ==========================================
 $tugas_aktif = null;
 $q_aktif = mysqli_query($conn, "SELECT sj.*, a.id as id_armada, a.nopol, a.tipe 
                                 FROM surat_jalan sj JOIN armada a ON sj.id_armada = a.id
-                                WHERE sj.id_driver = '$id_supir_asli' AND (sj.status = 'ON TRIP' OR (sj.status = 'DELIVERED' AND '$status_supir' = 'RETURNING'))
+                                WHERE sj.id_driver = '$id_supir_asli' AND (sj.status IN ('WAITING CONFIRMATION', 'ON TRIP') OR (sj.status = 'DELIVERED' AND '$status_supir' = 'RETURNING'))
                                 ORDER BY sj.id DESC LIMIT 1");
 if ($row = mysqli_fetch_assoc($q_aktif)) {
     $tugas_aktif = $row;
@@ -328,7 +356,20 @@ while ($row = mysqli_fetch_assoc($q_riwayat)) {
                 <div id="map-driver"></div>
 
                 <div class="p-3">
-                    <?php if($next_cp): ?>
+                    <?php if($tugas_aktif['status'] == 'WAITING CONFIRMATION'): ?>
+                        <div class="alert alert-warning border-0 shadow-sm text-center" style="border-radius:14px;">
+                            <i class="fas fa-truck-loading fa-3x mb-3 text-warning"></i>
+                            <h5 class="fw-bold mb-2">Tugas Baru Diterima!</h5>
+                            <p class="small text-muted mb-3">Silakan periksa kesiapan armada (<strong><?= $tugas_aktif['nopol']; ?></strong>). Jika sudah siap jalan, klik tombol di bawah.</p>
+                            <form method="POST">
+                                <input type="hidden" name="id_sj" value="<?= $tugas_aktif['id']; ?>">
+                                <input type="hidden" name="id_armada" value="<?= $tugas_aktif['id_armada']; ?>">
+                                <button type="submit" name="konfirmasi_berangkat" class="btn btn-warning w-100 fw-bold py-3" style="border-radius: 12px; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(255,193,7,0.3);">
+                                    <i class="fas fa-key me-2"></i>KONFIRMASI ARMADA & BERANGKAT
+                                </button>
+                            </form>
+                        </div>
+                    <?php elseif($next_cp): ?>
                         <!-- Form Check In -->
                         <div class="alert alert-info border-0 shadow-sm" style="border-radius:14px; background:#eff6ff;">
                             <h6 class="fw-bold mb-1 text-primary">Target Checkpoint Berikutnya:</h6>
@@ -343,8 +384,8 @@ while ($row = mysqli_fetch_assoc($q_riwayat)) {
                             
                             <textarea name="catatan" class="form-control mb-3" rows="2" placeholder="Catatan opsional (misal: cuaca buruk, macet)..." style="border-radius:12px; background:#f8fafc; border-color:#e2e8f0;"></textarea>
                             
-                            <button type="submit" name="checkin_route" class="btn-checkin" onclick="return confirm('Yakin sudah sampai di <?= addslashes($next_cp['nama_kota']); ?>?')">
-                                <i class="fas fa-check-circle me-2"></i>SAYA SUDAH SAMPAI
+                            <button type="submit" name="checkin_route" class="btn-checkin" onclick="return confirm('Konfirmasi bahwa Anda saat ini telah tiba di Checkpoint: <?= addslashes($next_cp['nama_kota']); ?>?')">
+                                <i class="fas fa-check-circle me-2"></i>KONFIRMASI TIBA DI <?= strtoupper($next_cp['nama_kota']); ?>
                             </button>
                         </form>
                     

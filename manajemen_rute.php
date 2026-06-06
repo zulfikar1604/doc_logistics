@@ -62,18 +62,22 @@ if (isset($_GET['edit'])) {
         .btn-sultan:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(43,89,255,0.2); color: white; }
         .badge-pergi { background: #dbeafe; color: #1d4ed8; padding: 5px 12px; border-radius: 8px; font-weight: 700; font-size: 0.72rem; }
         .badge-pulang { background: #fef3c7; color: #b45309; padding: 5px 12px; border-radius: 8px; font-weight: 700; font-size: 0.72rem; }
-        .checkpoint-list { list-style: none; padding: 0; margin: 0; }
-        .checkpoint-item { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; cursor: grab; display: flex; align-items: center; gap: 12px; transition: all 0.2s; }
-        .checkpoint-item:hover { border-color: #3b82f6; box-shadow: 0 4px 12px rgba(59,130,246,0.1); }
-        .checkpoint-item:active, .checkpoint-item.sortable-chosen { cursor: grabbing; background: #eff6ff; border-color: #3b82f6; box-shadow: 0 8px 20px rgba(59,130,246,0.15); }
-        .checkpoint-item .drag-handle { color: #94a3b8; font-size: 1.1rem; }
+        .checkpoint-list { list-style: none; padding: 0; margin: 0; min-height: 20px; }
+        .checkpoint-item { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; cursor: grab; display: flex; align-items: center; gap: 12px; transition: all 0.2s; user-select: none; -webkit-user-select: none; }
+        .checkpoint-item:hover { border-color: #3b82f6; box-shadow: 0 4px 12px rgba(59,130,246,0.1); background: #f0f7ff; }
+        .checkpoint-item:active, .checkpoint-item.sortable-chosen { cursor: grabbing; background: #eff6ff; border-color: #3b82f6; box-shadow: 0 8px 20px rgba(59,130,246,0.15); transform: scale(1.02); }
+        .checkpoint-item.sortable-drag { opacity: 0.9; box-shadow: 0 12px 30px rgba(59,130,246,0.25); }
+        .checkpoint-item .drag-handle { color: #94a3b8; font-size: 1.2rem; cursor: grab; padding: 4px; }
+        .checkpoint-item .drag-handle:hover { color: #3b82f6; }
         .checkpoint-item .cp-number { width: 28px; height: 28px; border-radius: 50%; background: var(--primary-blue); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; flex-shrink: 0; }
         .checkpoint-item .cp-name { font-weight: 700; color: #1e293b; flex-grow: 1; }
+        .checkpoint-item .cp-jarak { font-size: 0.78rem; font-weight: 700; color: #3b82f6; background: #eff6ff; padding: 4px 10px; border-radius: 8px; white-space: nowrap; }
+        .checkpoint-item .cp-jarak.titik-awal { color: #16a34a; background: #f0fdf4; }
         .summary-box { background: linear-gradient(135deg, #1a367e 0%, #2b59ff 100%); border-radius: 16px; padding: 20px; color: white; }
         .summary-box .label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; margin-bottom: 4px; }
         .summary-box .value { font-size: 1.4rem; font-weight: 800; }
         #map-route { height: 320px; border-radius: 14px; border: 2px solid #e2e8f0; }
-        .ghost { opacity: 0.4; }
+        .ghost { opacity: 0.3; background: #dbeafe; border: 2px dashed #3b82f6; }
     </style>
 </head>
 <body>
@@ -87,7 +91,7 @@ if (isset($_GET['edit'])) {
             <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap">
                 <div>
                     <h3 class="fw-bold mb-1" style="color:#1a367e;">Manajemen Rute</h3>
-                    <p class="text-muted small mb-0">Kelola rute perjalanan dan checkpoint. Rute pulang otomatis tergenerate.</p>
+                    <p class="text-muted small mb-0">Kelola rute perjalanan dan checkpoint. Jarak dihitung otomatis oleh Haversine.</p>
                 </div>
                 <?php if ($role == 'ADMIN'): ?>
                 <a href="manajemen_rute.php?buat=1" class="btn btn-sultan mt-2 mt-md-0"><i class="fas fa-plus me-2"></i>Buat Rute Baru</a>
@@ -132,7 +136,7 @@ if (isset($_GET['edit'])) {
             <div class="mb-4">
                 <a href="manajemen_rute.php" class="btn btn-sm btn-light border shadow-sm mb-2" style="border-radius:8px;"><i class="fas fa-arrow-left me-2"></i>Kembali</a>
                 <h3 class="fw-bold mb-0" style="color:#1a367e;"><?= $edit_mode ? 'Edit Rute' : 'Buat Rute Baru'; ?></h3>
-                <p class="text-muted small">Pilih checkpoint dari master data, lalu atur urutannya dengan drag-and-drop.</p>
+                <p class="text-muted small">Pilih checkpoint dari master data, lalu atur urutannya dengan drag-and-drop. <strong class="text-primary">Jarak dihitung otomatis!</strong></p>
             </div>
 
             <form method="POST" action="proses_rute.php" id="formRute">
@@ -144,8 +148,16 @@ if (isset($_GET['edit'])) {
                     <!-- Kolom Kiri: Form + Checkpoint List -->
                     <div class="col-xl-6 col-lg-6 mb-4">
                         <div class="card-sultan p-4 mb-4">
-                            <label class="form-label fw-bold small text-muted text-uppercase">Nama Rute</label>
-                            <input type="text" name="nama_rute" class="form-control form-control-sultan" placeholder="Contoh: Jakarta → Ponorogo" value="<?= $edit_mode ? htmlspecialchars($edit_route['nama_rute']) : ''; ?>" required>
+                            <div class="row">
+                                <div class="col-md-8 mb-3 mb-md-0">
+                                    <label class="form-label fw-bold small text-muted text-uppercase">Nama Rute</label>
+                                    <input type="text" name="nama_rute" class="form-control form-control-sultan" placeholder="Contoh: Jakarta → Ponorogo" value="<?= $edit_mode ? htmlspecialchars($edit_route['nama_rute']) : ''; ?>" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small text-muted text-uppercase">Tarif / KM (Rp)</label>
+                                    <input type="number" name="tarif_per_km" id="inputTarifKM" class="form-control form-control-sultan" placeholder="5000" value="<?= $edit_mode ? intval($edit_route['biaya_per_km']) : 5000; ?>" min="0" step="500" required>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="card-sultan p-4 mb-4">
@@ -163,7 +175,7 @@ if (isset($_GET['edit'])) {
                             </div>
 
                             <div class="alert alert-light border small py-2" style="border-radius:10px;">
-                                <i class="fas fa-hand-pointer text-primary me-1"></i> Drag & drop untuk mengubah urutan checkpoint.
+                                <i class="fas fa-calculator text-success me-1"></i> Jarak antar checkpoint dihitung <strong>otomatis (Haversine)</strong>. Drag & drop untuk mengubah urutan.
                             </div>
 
                             <ul class="checkpoint-list" id="checkpointList">
@@ -173,8 +185,7 @@ if (isset($_GET['edit'])) {
                                     <div class="cp-number"><?= $idx+1; ?></div>
                                     <div class="cp-name"><?= htmlspecialchars($ed['nama_kota']); ?></div>
                                     <input type="hidden" name="checkpoint[]" value="<?= $ed['id_master_point']; ?>">
-                                    <input type="number" name="jarak[]" class="form-control form-control-sm jarak-input" style="width:90px;border-radius:8px;text-align:center;" value="<?= $ed['jarak_dari_sebelumnya']; ?>" placeholder="KM" step="0.1" min="0">
-                                    <span class="small text-muted">km</span>
+                                    <span class="cp-jarak <?= $idx == 0 ? 'titik-awal' : ''; ?>"><?= $idx == 0 ? '📍 Titik Awal' : number_format($ed['jarak_dari_sebelumnya'],1,',','.') . ' km'; ?></span>
                                     <button type="button" class="btn btn-sm text-danger btn-hapus-cp" title="Hapus"><i class="fas fa-times"></i></button>
                                 </li>
                                 <?php endforeach; endif; ?>
@@ -227,6 +238,20 @@ if (isset($_GET['edit'])) {
     <script>
     <?php if(isset($_GET['buat']) || $edit_mode): ?>
     // ====================================
+    // HAVERSINE FORMULA (JavaScript)
+    // ====================================
+    function haversineJS(lat1, lon1, lat2, lon2) {
+        var R = 6371;
+        var dLat = (lat2 - lat1) * Math.PI / 180;
+        var dLon = (lon2 - lon1) * Math.PI / 180;
+        var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return Math.round(R * c * 100) / 100;
+    }
+
+    // ====================================
     // MAP SETUP
     // ====================================
     var map = L.map('map-route').setView([-6.9, 110.0], 6);
@@ -236,7 +261,6 @@ if (isset($_GET['edit'])) {
     var polyline = null;
 
     function updateMap() {
-        // Clear old
         markers.forEach(m => map.removeLayer(m));
         markers = [];
         if (polyline) map.removeLayer(polyline);
@@ -275,27 +299,52 @@ if (isset($_GET['edit'])) {
         });
     }
 
-    function updateSummary() {
+    // ====================================
+    // AUTO-CALCULATE DISTANCES (Haversine JS)
+    // ====================================
+    function updateDistances() {
         var items = document.querySelectorAll('#checkpointList .checkpoint-item');
         var totalKM = 0;
-        items.forEach(function(item) {
-            var input = item.querySelector('.jarak-input');
-            totalKM += parseFloat(input.value) || 0;
+
+        items.forEach(function(item, idx) {
+            var jarakEl = item.querySelector('.cp-jarak');
+            if (idx === 0) {
+                jarakEl.textContent = '📍 Titik Awal';
+                jarakEl.classList.add('titik-awal');
+                jarakEl.classList.remove('cp-jarak-normal');
+            } else {
+                var prevItem = items[idx - 1];
+                var lat1 = parseFloat(prevItem.dataset.lat);
+                var lng1 = parseFloat(prevItem.dataset.lng);
+                var lat2 = parseFloat(item.dataset.lat);
+                var lng2 = parseFloat(item.dataset.lng);
+                
+                var jarak = haversineJS(lat1, lng1, lat2, lng2);
+                totalKM += jarak;
+                
+                jarakEl.textContent = jarak.toFixed(1).replace('.', ',') + ' km';
+                jarakEl.classList.remove('titik-awal');
+            }
         });
+
+        var tarifKM = parseFloat(document.getElementById('inputTarifKM').value) || 5000;
         document.getElementById('summaryCP').textContent = items.length;
         document.getElementById('summaryKM').textContent = totalKM.toFixed(1);
-        document.getElementById('summaryBiaya').textContent = new Intl.NumberFormat('id-ID').format(totalKM * 5000);
+        document.getElementById('summaryBiaya').textContent = new Intl.NumberFormat('id-ID').format(Math.round(totalKM * tarifKM));
     }
 
-    // Sortable.js initialization
+    // Sortable.js — bisa drag dari MANA SAJA pada item (bukan hanya ikon)
     var sortable = Sortable.create(document.getElementById('checkpointList'), {
-        handle: '.drag-handle',
-        animation: 200,
+        animation: 250,
         ghostClass: 'ghost',
+        dragClass: 'sortable-drag',
+        chosenClass: 'sortable-chosen',
+        filter: '.btn-hapus-cp, .btn-hapus-cp *',  // tombol hapus tidak trigger drag
+        preventOnFilter: false,  // tetap izinkan klik tombol hapus
         onEnd: function() {
             updateNumbers();
+            updateDistances();
             updateMap();
-            updateSummary();
         }
     });
 
@@ -323,30 +372,32 @@ if (isset($_GET['edit'])) {
             '<div class="cp-number">'+num+'</div>' +
             '<div class="cp-name">'+nama+'</div>' +
             '<input type="hidden" name="checkpoint[]" value="'+id+'">' +
-            '<input type="number" name="jarak[]" class="form-control form-control-sm jarak-input" style="width:90px;border-radius:8px;text-align:center;" value="0" placeholder="KM" step="0.1" min="0">' +
-            '<span class="small text-muted">km</span>' +
+            '<span class="cp-jarak">— km</span>' +
             '<button type="button" class="btn btn-sm text-danger btn-hapus-cp" title="Hapus"><i class="fas fa-times"></i></button>';
 
         document.getElementById('checkpointList').appendChild(li);
         sel.value = '';
+        updateNumbers();
+        updateDistances();
         updateMap();
-        updateSummary();
     });
 
     // Delete checkpoint
     $(document).on('click', '.btn-hapus-cp', function() {
         $(this).closest('.checkpoint-item').remove();
         updateNumbers();
+        updateDistances();
         updateMap();
-        updateSummary();
     });
 
-    // Distance input change
-    $(document).on('input', '.jarak-input', function() { updateSummary(); });
+    // Tarif per KM change → recalculate biaya
+    document.getElementById('inputTarifKM').addEventListener('input', function() {
+        updateDistances();
+    });
 
     // Init on page load
     updateMap();
-    updateSummary();
+    updateDistances();
     <?php endif; ?>
     </script>
 </body>

@@ -135,9 +135,17 @@ $query_kota = mysqli_query($conn, "SELECT * FROM master_points ORDER BY nama_kot
             </div>
 
             <div class="row">
-                <!-- Kolom Kiri: Tabel Data -->
-                <div class="col-xl-7 col-lg-6 mb-4">
-                    <div class="card-sultan p-0">
+                <!-- Peta Preview Semua Kota (Sekarang di Atas & Lebar) -->
+                <div class="col-12 mb-4">
+                    <div class="card-sultan p-4 h-100">
+                        <h6 class="fw-bold mb-3"><i class="fas fa-map-marked-alt text-success me-2"></i> Peta Sebaran Checkpoint</h6>
+                        <div id="map-all" style="height: 460px; border-radius: 14px; border: 2px solid #e2e8f0;"></div>
+                    </div>
+                </div>
+
+                <!-- Tabel Data (Di Bawah Peta) -->
+                <div class="col-12 mb-4">
+                    <div class="card-sultan">
                         <div class="header-sultan d-flex justify-content-between align-items-center">
                             <h6 class="fw-bold mb-0"><i class="fas fa-globe-asia text-primary me-2"></i> Daftar Kota Terdaftar</h6>
                             <span class="badge bg-primary bg-opacity-10 text-primary" style="border-radius:8px; padding:6px 12px; font-weight:700; font-size:0.75rem;">
@@ -188,14 +196,6 @@ $query_kota = mysqli_query($conn, "SELECT * FROM master_points ORDER BY nama_kot
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Kolom Kanan: Peta Preview Semua Kota -->
-                <div class="col-xl-5 col-lg-6 mb-4">
-                    <div class="card-sultan p-4 h-100">
-                        <h6 class="fw-bold mb-3"><i class="fas fa-map-marked-alt text-success me-2"></i> Peta Sebaran Checkpoint</h6>
-                        <div id="map-all" style="height: 460px; border-radius: 14px; border: 2px solid #e2e8f0;"></div>
                     </div>
                 </div>
             </div>
@@ -299,9 +299,11 @@ $query_kota = mysqli_query($conn, "SELECT * FROM master_points ORDER BY nama_kot
     while($mk = mysqli_fetch_assoc($query_kota)): 
         if($mk['is_active']):
     ?>
-    L.circleMarker([<?= $mk['latitude']; ?>, <?= $mk['longitude']; ?>], {
-        radius: 7, fillColor: '#3b82f6', color: '#1e40af', weight: 2, opacity: 1, fillOpacity: 0.8
-    }).addTo(mapAll).bindPopup('<strong><?= addslashes($mk['nama_kota']); ?></strong><br><small><?= $mk['latitude']; ?>, <?= $mk['longitude']; ?></small>');
+    var iconHtml = '<div style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; width: 36px; height: 36px; border-radius: 50% 50% 50% 0; display: flex; align-items: center; justify-content: center; transform: rotate(-45deg) translateY(-8px); box-shadow: 2px 2px 10px rgba(0,0,0,0.3); border: 2px solid white; transition: all 0.3s;"><i class="fas fa-map-pin" style="transform: rotate(45deg); font-size: 16px;"></i></div>';
+    var customIcon = L.divIcon({ className: '', html: iconHtml, iconSize: [36, 44], iconAnchor: [18, 44], popupAnchor: [0, -44] });
+
+    L.marker([<?= $mk['latitude']; ?>, <?= $mk['longitude']; ?>], {icon: customIcon})
+    .addTo(mapAll).bindPopup('<div style="text-align:center;"><strong style="font-size:1.1rem; color:#1e293b;"><?= addslashes($mk['nama_kota']); ?></strong><br><small class="text-muted"><i class="fas fa-location-crosshairs me-1"></i><?= $mk['latitude']; ?>, <?= $mk['longitude']; ?></small></div>');
     <?php endif; endwhile; ?>
 
     // ====================================
@@ -322,9 +324,12 @@ $query_kota = mysqli_query($conn, "SELECT * FROM master_points ORDER BY nama_kot
                     document.getElementById('add-lat').value = lat;
                     document.getElementById('add-lng').value = lng;
                     
+                    var newIconHtml = '<div style="background: linear-gradient(135deg, #10b981, #047857); color: white; width: 36px; height: 36px; border-radius: 50% 50% 50% 0; display: flex; align-items: center; justify-content: center; transform: rotate(-45deg) translateY(-8px); box-shadow: 2px 2px 10px rgba(0,0,0,0.4); border: 2px solid white;"><i class="fas fa-crosshairs" style="transform: rotate(45deg); font-size: 16px;"></i></div>';
+                    var previewIcon = L.divIcon({ className: '', html: newIconHtml, iconSize: [36, 44], iconAnchor: [18, 44], popupAnchor: [0, -44] });
+
                     if (markerPreview) mapPreview.removeLayer(markerPreview);
-                    markerPreview = L.marker([lat, lng]).addTo(mapPreview)
-                        .bindPopup('Lokasi dipilih: ' + lat + ', ' + lng).openPopup();
+                    markerPreview = L.marker([lat, lng], {icon: previewIcon}).addTo(mapPreview)
+                        .bindPopup('<strong>Lokasi Baru</strong><br>' + lat + ', ' + lng).openPopup();
                 });
             } else {
                 mapPreview.invalidateSize();
@@ -342,7 +347,10 @@ $query_kota = mysqli_query($conn, "SELECT * FROM master_points ORDER BY nama_kot
             attribution: '&copy; OpenStreetMap'
         }).addTo(mapEdit);
 
-        var markerEdit = L.marker([<?= $edit_data['latitude']; ?>, <?= $edit_data['longitude']; ?>]).addTo(mapEdit)
+        var editIconHtml = '<div style="background: linear-gradient(135deg, #f59e0b, #b45309); color: white; width: 36px; height: 36px; border-radius: 50% 50% 50% 0; display: flex; align-items: center; justify-content: center; transform: rotate(-45deg) translateY(-8px); box-shadow: 2px 2px 10px rgba(0,0,0,0.4); border: 2px solid white;"><i class="fas fa-pen" style="transform: rotate(45deg); font-size: 14px;"></i></div>';
+        var editIcon = L.divIcon({ className: '', html: editIconHtml, iconSize: [36, 44], iconAnchor: [18, 44], popupAnchor: [0, -44] });
+
+        var markerEdit = L.marker([<?= $edit_data['latitude']; ?>, <?= $edit_data['longitude']; ?>], {icon: editIcon}).addTo(mapEdit)
             .bindPopup('<strong><?= addslashes($edit_data['nama_kota']); ?></strong>').openPopup();
 
         mapEdit.on('click', function(e) {
@@ -350,7 +358,7 @@ $query_kota = mysqli_query($conn, "SELECT * FROM master_points ORDER BY nama_kot
             var lng = e.latlng.lng.toFixed(7);
             document.getElementById('edit-lat').value = lat;
             document.getElementById('edit-lng').value = lng;
-            markerEdit.setLatLng([lat, lng]).bindPopup('Lokasi baru: ' + lat + ', ' + lng).openPopup();
+            markerEdit.setLatLng([lat, lng]).bindPopup('<strong>Lokasi digeser</strong><br>' + lat + ', ' + lng).openPopup();
         });
     }, 500);
     <?php endif; ?>

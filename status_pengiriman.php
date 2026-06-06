@@ -114,8 +114,8 @@ if ($role == 'DRIVER') {
                                          JOIN driver d ON sj.id_driver = d.id 
                                          JOIN login l ON d.id_login = l.id 
                                          JOIN armada a ON sj.id_armada = a.id
-                                         WHERE sj.status IN ('ON TRIP', 'DRAFT', 'DELIVERED', 'RETURNING', 'FINISHED')
-                                         ORDER BY FIELD(sj.status, 'ON TRIP', 'RETURNING', 'DRAFT', 'DELIVERED', 'FINISHED'), sj.tgl_kirim DESC");
+                                         WHERE sj.status IN ('ON TRIP', 'DRAFT', 'DELIVERED', 'RETURNING', 'FINISHED', 'WAITING CONFIRMATION', 'CANCELLED')
+                                         ORDER BY FIELD(sj.status, 'WAITING CONFIRMATION', 'ON TRIP', 'RETURNING', 'DRAFT', 'DELIVERED', 'FINISHED', 'CANCELLED'), sj.tgl_kirim DESC");
             
             if(mysqli_num_rows($q_sj) > 0) {
                 while($row = mysqli_fetch_assoc($q_sj)) {
@@ -143,6 +143,8 @@ if ($role == 'DRIVER') {
                     </div>
                     <?php if($st == 'ON TRIP'): ?>
                         <span class="status-badge bg-on-trip"><i class="fas fa-truck me-1"></i> Sedang Dikirim</span>
+                    <?php elseif($st == 'WAITING CONFIRMATION'): ?>
+                        <span class="status-badge bg-warning text-dark"><i class="fas fa-clock me-1"></i> Menunggu Konfirmasi Driver</span>
                     <?php else: ?>
                         <span class="status-badge bg-secondary text-white"><i class="fas fa-file-alt me-1"></i> Draft / Persiapan</span>
                     <?php endif; ?>
@@ -158,7 +160,7 @@ if ($role == 'DRIVER') {
                         <div class="timeline-step <?= ($st == 'ON TRIP') ? 'active' : ''; ?>">
                             <div class="inner-circle"></div>
                             <p class="small fw-bold mb-0">On Trip</p>
-                            <p class="text-muted" style="font-size: 0.7rem;"><?= ($st == 'ON TRIP') ? $cp_text : 'Pending'; ?></p>
+                            <p class="text-muted" style="font-size: 0.7rem;"><?= ($st == 'ON TRIP') ? $cp_text : (($st == 'WAITING CONFIRMATION') ? 'Menunggu Konfirmasi' : 'Pending'); ?></p>
                         </div>
                         <div class="timeline-step">
                             <div class="inner-circle"></div>
@@ -249,6 +251,21 @@ if ($role == 'DRIVER') {
                 </div>
                 <div class="card-body p-4 text-center">
                     <p class="mb-0 text-muted">Misi pengiriman ke <strong class="text-dark"><?= $row['penerima']; ?></strong> telah selesai sepenuhnya. Armada & driver kembali stand-by.</p>
+                </div>
+            </div>
+            <?php 
+                    } elseif ($st == 'CANCELLED') { 
+            ?>
+            <div class="tracking-card" style="opacity: 0.6;">
+                <div class="card-header-sultan d-flex justify-content-between align-items-center flex-wrap">
+                    <div class="mb-2 mb-md-0">
+                        <span class="info-label">No. Surat Jalan</span>
+                        <span class="info-value text-decoration-line-through"><?= $row['no_sj']; ?></span>
+                    </div>
+                    <span class="status-badge bg-danger text-white"><i class="fas fa-times-circle me-1"></i> Dibatalkan</span>
+                </div>
+                <div class="card-body p-4 text-center">
+                    <p class="mb-0 text-danger">Tugas dibatalkan oleh sistem (kemungkinan karena Invoice belum dibayar melebihi batas waktu 2 jam).</p>
                 </div>
             </div>
             <?php 

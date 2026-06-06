@@ -141,8 +141,8 @@ $json_barang_str = json_encode($json_barang);
                             <select class="form-control select2" name="kendaraan_id" required>
                                 <option value="">-- Pilih Kendaraan --</option>
                                 <?php
-                                // Ambil data armada dari database
-                                $q_mobil = mysqli_query($conn, "SELECT * FROM armada");
+                                // Ambil data armada dari database yang statusnya READY
+                                $q_mobil = mysqli_query($conn, "SELECT * FROM armada WHERE status = 'READY'");
                                 while($m = mysqli_fetch_assoc($q_mobil)) {
                                     $kategori = isset($m['kategori_kendaraan']) && !empty($m['kategori_kendaraan']) ? $m['kategori_kendaraan'] : 'Kategori -';
                                     echo "<option value='".$m['id']."'>".$m['nopol']." - ".$m['tipe']." (".$kategori.")</option>";
