@@ -15,7 +15,7 @@ $filter_query = "";
 if (isset($_GET['tgl_mulai']) && isset($_GET['tgl_selesai']) && !empty($_GET['tgl_mulai'])) {
     $mulai = mysqli_real_escape_string($conn, $_GET['tgl_mulai']) . " 00:00:00";
     $selesai = mysqli_real_escape_string($conn, $_GET['tgl_selesai']) . " 23:59:59";
-    $filter_query .= " AND created_at BETWEEN '$mulai' AND '$selesai' ";
+    $filter_query .= " AND pb.created_at BETWEEN '$mulai' AND '$selesai' ";
 }
 ?>
 <!DOCTYPE html>
@@ -129,9 +129,10 @@ if (isset($_GET['tgl_mulai']) && isset($_GET['tgl_selesai']) && !empty($_GET['tg
                         </thead>
                         <tbody>
                             <?php
-                            $sql = "SELECT * FROM penerimaan_barang 
+                            $sql = "SELECT pb.*, sb.kategori FROM penerimaan_barang pb 
+                                    LEFT JOIN stok_barang sb ON pb.id_barang = sb.id
                                     WHERE 1=1 $filter_query 
-                                    ORDER BY created_at DESC";
+                                    ORDER BY pb.created_at DESC";
                             $query = mysqli_query($conn, $sql);
                             while ($row = mysqli_fetch_assoc($query)) {
                             ?>

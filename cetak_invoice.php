@@ -31,7 +31,54 @@ while ($d = mysqli_fetch_assoc($q_det)) {
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; color: #1e293b; line-height: 1.6; margin: 0; padding: 40px; background: #f8fafc; }
-        .invoice-box { max-width: 800px; margin: auto; padding: 40px; border: 1px solid #e2e8f0; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border-radius: 12px; }
+        .invoice-box { max-width: 800px; margin: auto; padding: 40px; border: 1px solid #e2e8f0; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border-radius: 12px; position: relative; }
+        .stamp-wrapper {
+            position: absolute;
+            top: 20px;
+            left: 40px;
+            width: 170px;
+            padding: 8px;
+            border: 3px solid currentColor;
+            border-radius: 10px;
+            text-align: center;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            text-transform: uppercase;
+            font-weight: 800;
+            letter-spacing: 1px;
+            transform: rotate(-12deg);
+            mix-blend-mode: multiply;
+            opacity: 0.85;
+            pointer-events: none;
+            user-select: none;
+            z-index: 99;
+        }
+        .stamp-inner {
+            border: 1px dashed currentColor;
+            border-radius: 6px;
+            padding: 6px;
+        }
+        .stamp-brand {
+            font-size: 8px;
+            letter-spacing: 2px;
+            margin-bottom: 2px;
+        }
+        .stamp-title {
+            font-size: 16px;
+            margin: 4px 0;
+            line-height: 1.2;
+        }
+        .stamp-date {
+            font-size: 9px;
+            letter-spacing: 1px;
+        }
+        .stamp-paid {
+            color: #10b981; /* Green */
+            background: rgba(16, 185, 129, 0.05);
+        }
+        .stamp-unpaid {
+            color: #ef4444; /* Red */
+            background: rgba(239, 68, 68, 0.05);
+        }
         .header { display: flex; justify-content: space-between; margin-bottom: 40px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; }
         .logo { font-size: 24px; font-weight: 800; color: #1a367e; letter-spacing: -0.5px; }
         .logo span { color: #ffcc00; }
@@ -64,6 +111,7 @@ while ($d = mysqli_fetch_assoc($q_det)) {
 <body>
 
 <div class="invoice-box">
+
     <div style="margin-bottom: 20px; text-align: right;">
         <button class="btn-print" onclick="window.print()" style="padding: 10px 20px; background: #1a367e; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-family: inherit;">Cetak / Save PDF</button>
     </div>
@@ -132,7 +180,22 @@ while ($d = mysqli_fetch_assoc($q_det)) {
         </tbody>
     </table>
 
-    <div class="clearfix">
+    <div class="clearfix" style="margin-top: 30px;">
+        <!-- Signature Block -->
+        <div style="float: left; width: 250px; margin-top: 10px; position: relative; text-align: center;">
+            <div style="font-size: 13px; font-weight: 700; margin-bottom: 80px; color: #475569;">Hormat Kami,</div>
+            <div style="border-top: 1px solid #1e293b; font-weight: 700; font-size: 14px; padding-top: 5px; color: #1e293b;">PT Global Logistics</div>
+            
+            <!-- CSS Stamp -->
+            <div class="stamp-wrapper stamp-<?= strtolower($inv['status']) ?>">
+                <div class="stamp-inner">
+                    <div class="stamp-brand">GLOBAL LOGISTICS</div>
+                    <div class="stamp-title"><?= $inv['status'] == 'PAID' ? 'LUNAS' : 'BELUM LUNAS' ?></div>
+                    <div class="stamp-date"><?= date('d.m.Y', strtotime($inv['tgl_invoice'])) ?></div>
+                </div>
+            </div>
+        </div>
+
         <div class="total-box">
             <div class="total-row">
                 <span>Subtotal</span>

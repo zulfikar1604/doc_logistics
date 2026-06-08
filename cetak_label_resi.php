@@ -103,6 +103,44 @@ $total_item = $d_det['total_item'] ?? 0;
             padding: 5mm; 
             box-sizing: border-box;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .stamp-watermark {
+            position: absolute;
+            bottom: 50px;
+            right: 25px;
+            width: 140px;
+            padding: 6px;
+            border: 2px solid #000;
+            border-radius: 8px;
+            text-align: center;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            text-transform: uppercase;
+            font-weight: 800;
+            color: #000;
+            transform: rotate(-10deg);
+            opacity: 0.15;
+            pointer-events: none;
+            user-select: none;
+            z-index: 99;
+        }
+        .stamp-watermark-inner {
+            border: 1px dashed #000;
+            border-radius: 4px;
+            padding: 4px;
+        }
+        .stamp-wm-brand {
+            font-size: 7px;
+            letter-spacing: 1.5px;
+            margin-bottom: 2px;
+        }
+        .stamp-wm-title {
+            font-size: 13px;
+            margin: 2px 0;
+            line-height: 1.1;
+        }
+        .stamp-wm-date {
+            font-size: 8px;
         }
         
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed #000; padding-bottom: 5mm; margin-bottom: 5mm; }
@@ -163,6 +201,15 @@ $total_item = $d_det['total_item'] ?? 0;
     </div>
 
     <div class="label-container">
+        <!-- Watermark Stamp -->
+        <div class="stamp-watermark">
+            <div class="stamp-watermark-inner">
+                <div class="stamp-wm-brand">GLOBAL LOGISTICS</div>
+                <div class="stamp-wm-title"><?= htmlspecialchars($sj['status']) ?></div>
+                <div class="stamp-wm-date"><?= date('d.m.Y', strtotime($sj['tgl_kirim'])) ?></div>
+            </div>
+        </div>
+
         <!-- HEADER -->
         <div class="header">
             <div class="logo">GLOBAL<span>LOGISTICS</span></div>

@@ -118,6 +118,7 @@ $query = mysqli_query($conn, $sql);
         .signature-box {
             width: 250px;
             text-align: center;
+            position: relative; /* For stamp positioning */
         }
         .signature-box .date {
             margin-bottom: 10px;
@@ -126,6 +127,45 @@ $query = mysqli_query($conn, $sql);
             margin-top: 70px;
             font-weight: 700;
             text-decoration: underline;
+        }
+        .stamp-warehouse {
+            position: absolute;
+            top: 15px;
+            left: 45px;
+            width: 160px;
+            padding: 6px;
+            border: 3px solid #10b981;
+            border-radius: 8px;
+            color: #10b981;
+            text-align: center;
+            font-family: 'Inter', sans-serif;
+            text-transform: uppercase;
+            font-weight: 800;
+            transform: rotate(-8deg);
+            mix-blend-mode: multiply;
+            opacity: 0.8;
+            pointer-events: none;
+            user-select: none;
+            z-index: 10;
+        }
+        .stamp-wh-inner {
+            border: 1px dashed #10b981;
+            border-radius: 4px;
+            padding: 4px;
+        }
+        .stamp-wh-brand {
+            font-size: 7px;
+            letter-spacing: 1.5px;
+            margin-bottom: 2px;
+        }
+        .stamp-wh-title {
+            font-size: 14px;
+            margin: 3px 0;
+            line-height: 1.2;
+        }
+        .stamp-wh-dept {
+            font-size: 8px;
+            letter-spacing: 1px;
         }
 
         /* Tombol Print (Sembunyi saat dicetak) */
@@ -217,10 +257,19 @@ $query = mysqli_query($conn, $sql);
 
         <!-- Tanda Tangan -->
         <div class="signature-area">
-            <div class="signature-box">
+            <div class="signature-box" style="position: relative;">
                 <div class="date">Jakarta, <?= date('d F Y') ?></div>
                 <div>Mengetahui,</div>
                 <div class="name">Kepala Gudang</div>
+                
+                <!-- CSS Stamp -->
+                <div class="stamp-warehouse">
+                    <div class="stamp-wh-inner">
+                        <div class="stamp-wh-brand">PT. ELEKTRONIK GLOBAL</div>
+                        <div class="stamp-wh-title">APPROVED</div>
+                        <div class="stamp-wh-dept">GUDANG UTAMA</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

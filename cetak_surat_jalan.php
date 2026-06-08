@@ -44,7 +44,58 @@ while ($d = mysqli_fetch_assoc($q_det)) {
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; color: #1e293b; line-height: 1.6; margin: 0; padding: 40px; background: #f8fafc; }
-        .document-box { max-width: 850px; margin: auto; padding: 50px; border: 1px solid #e2e8f0; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border-radius: 12px; }
+        .document-box { max-width: 850px; margin: auto; padding: 50px; border: 1px solid #e2e8f0; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border-radius: 12px; position: relative; }
+        .stamp-wrapper {
+            position: absolute;
+            top: 20px;
+            left: 15px;
+            width: 170px;
+            padding: 8px;
+            border: 3px solid currentColor;
+            border-radius: 10px;
+            text-align: center;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            text-transform: uppercase;
+            font-weight: 800;
+            letter-spacing: 1px;
+            transform: rotate(-12deg);
+            mix-blend-mode: multiply;
+            opacity: 0.85;
+            pointer-events: none;
+            user-select: none;
+            z-index: 99;
+        }
+        .stamp-inner {
+            border: 1px dashed currentColor;
+            border-radius: 6px;
+            padding: 6px;
+        }
+        .stamp-brand {
+            font-size: 8px;
+            letter-spacing: 2px;
+            margin-bottom: 2px;
+        }
+        .stamp-title {
+            font-size: 14px;
+            margin: 4px 0;
+            line-height: 1.2;
+        }
+        .stamp-date {
+            font-size: 9px;
+            letter-spacing: 1px;
+        }
+        .stamp-shipper {
+            color: #1a367e; /* Corporate Blue */
+            background: rgba(26, 54, 126, 0.05);
+        }
+        .stamp-consignee {
+            color: #10b981; /* Green */
+            background: rgba(16, 185, 129, 0.05);
+        }
+        .stamp-draft {
+            color: #64748b; /* Slate Gray */
+            background: rgba(100, 116, 139, 0.05);
+        }
         
         .header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 4px solid #1a367e; padding-bottom: 20px; }
         .logo { font-size: 26px; font-weight: 800; color: #1a367e; letter-spacing: -0.5px; }
@@ -66,7 +117,7 @@ while ($d = mysqli_fetch_assoc($q_det)) {
         table td.center { text-align: center; font-weight: 600; }
         
         .signature-section { display: flex; justify-content: space-between; margin-top: 60px; text-align: center; }
-        .sign-box { width: 200px; }
+        .sign-box { width: 200px; position: relative; }
         .sign-title { font-size: 13px; font-weight: 700; margin-bottom: 80px; }
         .sign-line { border-top: 1px solid #1e293b; font-weight: 700; font-size: 14px; padding-top: 5px; }
         
@@ -191,10 +242,50 @@ while ($d = mysqli_fetch_assoc($q_det)) {
         <div class="sign-box">
             <div class="sign-title">Pengirim (Shipper)</div>
             <div class="sign-line">PT Global Logistics</div>
+            
+            <?php if ($st != 'DRAFT'): ?>
+            <!-- CSS Shipper Stamp -->
+            <div class="stamp-wrapper stamp-shipper">
+                <div class="stamp-inner">
+                    <div class="stamp-brand">GLOBAL LOGISTICS</div>
+                    <div class="stamp-title">RELEASED</div>
+                    <div class="stamp-date"><?= date('d.m.Y', strtotime($sj['tgl_kirim'])) ?></div>
+                </div>
+            </div>
+            <?php else: ?>
+            <!-- CSS Draft Stamp -->
+            <div class="stamp-wrapper stamp-draft">
+                <div class="stamp-inner">
+                    <div class="stamp-brand">GLOBAL LOGISTICS</div>
+                    <div class="stamp-title">DRAFT ONLY</div>
+                    <div class="stamp-date"><?= date('d.m.Y', strtotime($sj['tgl_kirim'])) ?></div>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
         <div class="sign-box">
             <div class="sign-title">Supir (Driver)</div>
             <div class="sign-line"><?= htmlspecialchars($sj['nama_driver']) ?></div>
+            
+            <?php if ($st != 'DRAFT'): ?>
+            <!-- CSS Driver Stamp -->
+            <div class="stamp-wrapper <?= ($st == 'DELIVERED' || $st == 'FINISHED') ? 'stamp-consignee' : 'stamp-shipper' ?>">
+                <div class="stamp-inner">
+                    <div class="stamp-brand">GLOBAL LOGISTICS</div>
+                    <div class="stamp-title"><?= ($st == 'DELIVERED' || $st == 'FINISHED') ? 'DELIVERED' : 'ON TRIP' ?></div>
+                    <div class="stamp-date"><?= date('d.m.Y', strtotime($sj['tgl_kirim'])) ?></div>
+                </div>
+            </div>
+            <?php else: ?>
+            <!-- CSS Draft Stamp -->
+            <div class="stamp-wrapper stamp-draft">
+                <div class="stamp-inner">
+                    <div class="stamp-brand">GLOBAL LOGISTICS</div>
+                    <div class="stamp-title">DRAFT ONLY</div>
+                    <div class="stamp-date"><?= date('d.m.Y', strtotime($sj['tgl_kirim'])) ?></div>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
         <div class="sign-box">
             <div class="sign-title">Penerima (Consignee)</div>

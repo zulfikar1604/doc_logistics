@@ -140,11 +140,46 @@ $query = mysqli_query($conn, $sql);
             float: left;
             text-align: center;
             font-size: 10pt;
+            position: relative; /* For stamp positioning */
         }
-        .signature-name {
-            margin-top: 70px;
-            font-weight: bold;
-            text-decoration: underline;
+        .stamp-report {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            width: 160px;
+            padding: 6px;
+            border: 3px solid #1a367e;
+            border-radius: 8px;
+            color: #1a367e;
+            text-align: center;
+            font-family: 'Inter', sans-serif;
+            text-transform: uppercase;
+            font-weight: 800;
+            transform: rotate(-8deg);
+            mix-blend-mode: multiply;
+            opacity: 0.8;
+            pointer-events: none;
+            user-select: none;
+            z-index: 10;
+        }
+        .stamp-report-inner {
+            border: 1px dashed #1a367e;
+            border-radius: 4px;
+            padding: 4px;
+        }
+        .stamp-rep-brand {
+            font-size: 7px;
+            letter-spacing: 2px;
+            margin-bottom: 2px;
+        }
+        .stamp-rep-title {
+            font-size: 14px;
+            margin: 3px 0;
+            line-height: 1.2;
+        }
+        .stamp-rep-dept {
+            font-size: 8px;
+            letter-spacing: 1px;
         }
         .clearfix::after {
             content: "";
@@ -227,10 +262,19 @@ $query = mysqli_query($conn, $sql);
 
     <!-- Tanda Tangan -->
     <div class="signature-box clearfix">
-        <div class="signature-col" style="width: 100%; text-align: right; padding-right: 50px;">
+        <div class="signature-col" style="width: 100%; text-align: right; padding-right: 50px; position: relative; float: right;">
             Mengetahui,<br><br><br><br><br>
             <span style="font-weight: bold; text-decoration: underline;"><?= htmlspecialchars($_SESSION['nama_lengkap']) ?></span><br>
             Manager Operasional
+            
+            <!-- CSS Stamp -->
+            <div class="stamp-report">
+                <div class="stamp-report-inner">
+                    <div class="stamp-rep-brand">GLOBAL LOGISTICS</div>
+                    <div class="stamp-rep-title">VERIFIED</div>
+                    <div class="stamp-rep-dept">OPERATIONAL</div>
+                </div>
+            </div>
         </div>
     </div>
 
